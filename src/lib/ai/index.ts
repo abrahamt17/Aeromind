@@ -1,12 +1,11 @@
 import "server-only";
-import { createOpenAIGenerator } from "@/lib/ai/openai";
+import { createAiPlanGenerator } from "@/lib/ai/plan";
+import { getAiProvider } from "@/lib/ai/provider";
 import type { PlanGenerator } from "@/lib/ai/schema";
 import { templateGenerator } from "@/lib/ai/template";
 
-/** The one place that chooses a provider, so it can change without touching the app. */
+/** Uses the connected AI provider, or labelled pre-written content when there is none. */
 export function getPlanGenerator(): PlanGenerator {
-  const apiKey = process.env.OPENAI_API_KEY;
-  const model = process.env.OPENAI_MODEL;
-
-  return apiKey && model ? createOpenAIGenerator(apiKey, model) : templateGenerator;
+  const provider = getAiProvider();
+  return provider ? createAiPlanGenerator(provider) : templateGenerator;
 }

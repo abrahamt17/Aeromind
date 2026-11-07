@@ -48,7 +48,7 @@ function NewPlan({ entry }: { entry: DevelopmentEntry }) {
       <ActionForm action={generatePlan.bind(null, entry.request_id)} submitLabel="Create my plan">
         <CheckboxField
           name="consent"
-          label="I agree that these summaries, my training stage and my language can be used to create my plan, including by an AI provider if one is connected. My name, questionnaire answers and full report are not shared. I can withdraw this consent at any time."
+          label="I agree that these summaries, my training stage and my language can be sent to an AI provider to create my plan, if one is connected. My name, email, questionnaire answers, full report and private notes are not shared. I can withdraw this consent at any time."
         />
       </ActionForm>
     </Panel>

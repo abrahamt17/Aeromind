@@ -31,7 +31,7 @@ The objective is to build a polished, functional MVP suitable for an innovation 
 
 ## Repository status
 
-The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app. AeroMind Academy is being built in phases: the catalogue, simulated enrolment, lesson player, quizzes, progress and learning dashboard exist. The AI tutor is built and tested with real OpenAI answers. Live AI plans are not yet connected.
+The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app. AeroMind Academy is being built in phases: the catalogue, simulated enrolment, lesson player, quizzes, progress and learning dashboard exist. The AI tutor and AI development plans are built and tested with real OpenAI answers.
 
 ## Commands
 
@@ -234,7 +234,7 @@ Development-plan generation is the `generatePlan` server action. It must:
 4. Verify that the trainee has active consent for AI use.
 5. Retrieve recommendations for that request.
 6. Verify that each recommendation is approved by the assigned psychologist.
-7. Send only each recommendation's `competency` and `educational_summary`, plus training stage, language and relevant learning content.
+7. Send only each recommendation's `competency` and `educational_summary`, plus training stage, language and public Academy lesson and scenario titles. `buildPlanPayload` in `src/lib/ai/plan.ts` is the complete payload.
 8. Validate the returned content with Zod. Show a clear error state if validation fails, and never save unvalidated output.
 9. Save the plan, its source recommendation IDs and an audit event.
 

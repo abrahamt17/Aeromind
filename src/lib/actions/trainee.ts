@@ -6,8 +6,10 @@ import { z } from "zod";
 import { errorState, invalidState } from "@/lib/actions/errors";
 import type { ActionState } from "@/lib/actions/state";
 import { getPlanGenerator } from "@/lib/ai";
-import { generatedPlanSchema, planInputSchema } from "@/lib/ai/schema";
+import { AiProviderError } from "@/lib/ai/openai-api";
+import { type GeneratedPlan, generatedPlanSchema, planInputSchema, toPlanItems } from "@/lib/ai/schema";
 import { requireRole } from "@/lib/auth/session";
+import { getPlanOptions } from "@/lib/data/development";
 import { asUser } from "@/lib/db";
 import { DEMO_POLICY_VERSION, DEMO_QUESTIONNAIRE_VERSION } from "@/lib/demo/data";
 import { QUESTIONNAIRE_OPTIONS, QUESTIONNAIRE_QUESTIONS } from "@/lib/demo/questionnaire";
@@ -177,33 +179,41 @@ export async function generatePlan(
       return { status: "error", message: "Your professional has not approved any recommendations for a plan." };
     }
 
+    const options = await getPlanOptions(
+      profile.id,
+      parsedInput.data.recommendations.map((recommendation) => recommendation.competency),
+    );
+
     // Generation happens outside any database transaction because it can take a while.
+    // Output is never trusted, and an invalid plan gets one more attempt before failing.
     const generator = getPlanGenerator();
-    const plan = generatedPlanSchema.safeParse(await generator.generate(parsedInput.data));
-    if (!plan.success) {
+    let plan: GeneratedPlan | null = null;
+    for (let attempt = 0; attempt < 2 && !plan; attempt += 1) {
+      const result = generatedPlanSchema.safeParse(await generator.generate(parsedInput.data, options));
+      if (result.success) plan = result.data;
+    }
+    if (!plan) {
       return { status: "error", message: "The plan did not pass our safety checks, so it was not saved. Please try again." };
     }
 
-    await asUser(profile.id, async (tx) => {
-      const scenario = await tx.one<{ id: string }>(
-        "select id from public.learning_scenarios where published order by created_at limit 1",
-      );
-      const items = plan.data.items.map((item) => ({
-        ...item,
-        scenario_id: item.item_type === "scenario" ? (scenario?.id ?? null) : null,
-      }));
-
-      await tx.rows("select public.save_development_plan($1, $2, $3, $4, $5, $6, $7)", [
+    const { title, summary } = plan;
+    const items = toPlanItems(plan, options);
+    await asUser(profile.id, (tx) =>
+      tx.rows("select public.save_development_plan($1, $2, $3, $4, $5, $6, $7)", [
         requestId,
-        plan.data.title,
-        plan.data.summary,
+        title,
+        summary,
         parsedInput.data.language,
         generator.model,
         parsedInput.data.recommendations.map((recommendation) => recommendation.id),
         JSON.stringify(items),
-      ]);
-    });
+      ]),
+    );
   } catch (error) {
+    if (error instanceof AiProviderError) {
+      console.error(`Plan provider error: ${error.message}`);
+      return { status: "error", message: "The AI service is unavailable right now, so no plan was created. Please try again later." };
+    }
     return errorState(error);
   }
 
@@ -259,12 +269,13 @@ export async function completeScenario(input: unknown): Promise<{ ok: boolean }>
          values ($1, $2, $3, $4, now())`,
         [scenarioId, profile.id, planItemId, JSON.stringify(choices)],
       );
-      if (planItemId) {
-        await tx.rows(
-          "update public.development_plan_items set completed_at = coalesce(completed_at, now()) where id = $1",
-          [planItemId],
-        );
-      }
+      // RLS limits this to the trainee's own plans, wherever the scenario was opened.
+      await tx.rows(
+        `update public.development_plan_items
+         set completed_at = coalesce(completed_at, now())
+         where scenario_id = $1 or id = $2`,
+        [scenarioId, planItemId],
+      );
     });
   } catch (error) {
     console.error(error);

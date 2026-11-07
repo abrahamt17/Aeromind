@@ -1,4 +1,4 @@
-import type { PlanGenerator, PlanInput } from "@/lib/ai/schema";
+import type { PlanGenerator, PlanInput, PlanOptions } from "@/lib/ai/schema";
 import { COMPETENCIES, type Competency } from "@/lib/labels";
 
 export const TEMPLATE_MODEL = "template-v1";
@@ -37,42 +37,52 @@ function activityFor(competency: string): string {
 export const templateGenerator: PlanGenerator = {
   model: TEMPLATE_MODEL,
 
-  async generate(input: PlanInput) {
+  async generate(input: PlanInput, options: PlanOptions) {
     const topics = input.recommendations.slice(0, 3);
     const names = topics.map((topic) => labelFor(topic.competency).toLowerCase());
 
     return {
       title: `Development plan: ${labelFor(topics[0].competency).toLowerCase()}`,
       summary: `Educational activities on ${names.join(" and ")}, based on recommendations your professional approved for this purpose.`,
-      items: [
-        ...topics.flatMap((topic) => [
-          {
-            item_type: "objective",
+      goals: [
+        ...topics.map((topic) => {
+          const lesson = options.lessons.find((option) => option.competencies.includes(topic.competency));
+          return {
             title: `Build your understanding of ${labelFor(topic.competency).toLowerCase()}`,
-            description: topic.educational_summary,
-          },
-          {
-            item_type: "activity",
-            title: `Practise ${labelFor(topic.competency).toLowerCase()}`,
-            description: activityFor(topic.competency),
-          },
-        ]),
+            rationale: topic.educational_summary,
+            activities: [
+              {
+                title: `Practise ${labelFor(topic.competency).toLowerCase()}`,
+                type: "lesson" as const,
+                instructions: activityFor(topic.competency),
+                estimated_minutes: 15,
+                linked_title: lesson?.title ?? null,
+              },
+            ],
+          };
+        }),
         {
-          item_type: "scenario",
-          title: "Work through an aviation scenario",
-          description: "Make decisions in an illustrative flight-training situation and read the feedback.",
+          title: "Apply what you have learned",
+          rationale: "Practising in a hypothetical situation helps you connect ideas to training.",
+          activities: [
+            {
+              title: "Work through an aviation scenario",
+              type: "scenario" as const,
+              instructions: "Make decisions in an educational simulation and read the feedback.",
+              estimated_minutes: 10,
+              linked_title: options.scenarios[0]?.title ?? null,
+            },
+            {
+              title: "Reflect on what you have learned",
+              type: "reflection" as const,
+              instructions: "Note one habit you want to keep and one you want to change on your next flight.",
+              estimated_minutes: 10,
+              linked_title: null,
+            },
+          ],
         },
-        {
-          item_type: "reflection",
-          title: "Reflect on what you have learned",
-          description: "Note one habit you want to keep and one you want to change on your next flight.",
-        },
-        {
-          item_type: "follow_up",
-          title: "Consider a follow-up with your professional",
-          description: "Talk through what you have learned and whether anything else would help.",
-        },
-      ],
+      ].slice(0, 4),
+      suggested_follow_up: "Talk through what you have learned with your professional, and whether anything else would help.",
     };
   },
 };

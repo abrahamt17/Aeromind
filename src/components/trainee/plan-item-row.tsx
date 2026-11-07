@@ -24,9 +24,23 @@ export function PlanItemRow({ item }: { item: PlanItem }) {
         className="mt-1 size-4 shrink-0 cursor-pointer accent-[var(--brand)]"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-brand">{PLAN_ITEM_LABELS[item.item_type]}</p>
+        <p className="text-xs font-medium text-brand">
+          {item.lesson_id ? "Academy lesson" : PLAN_ITEM_LABELS[item.item_type]}
+          {item.estimated_minutes ? `, about ${item.estimated_minutes} min` : ""}
+        </p>
         <p className={done ? "font-medium text-muted-foreground line-through" : "font-medium"}>{item.title}</p>
         <p className="mt-0.5 text-sm text-muted-foreground">{item.description}</p>
+        {item.lesson_id && item.lesson_course_slug ? (
+          <div className="mt-3">
+            <LinkButton
+              href={`/academy/courses/${item.lesson_course_slug}/lessons/${item.lesson_id}`}
+              variant="outline"
+              size="sm"
+            >
+              {done ? "Review lesson" : "Open lesson"}
+            </LinkButton>
+          </div>
+        ) : null}
         {item.scenario_id ? (
           <div className="mt-3">
             <LinkButton href={`/trainee/scenarios/${item.scenario_id}?item=${item.id}`} variant="outline" size="sm">

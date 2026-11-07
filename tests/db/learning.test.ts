@@ -219,6 +219,43 @@ describe("lesson progress", () => {
   });
 });
 
+describe("plan links", () => {
+  it("completes a linked plan activity when the lesson is completed, for that student only", async () => {
+    const [request] = await db.admin<{ id: string }>(
+      `insert into public.assessment_requests (trainee_id, psychologist_id, status)
+       values ($1, (select user_id from public.psychologist_profiles limit 1), 'report_released')
+       returning id`,
+      [enrolled],
+    );
+    await db.admin("update public.psychologist_profiles set headline = 'x', bio = 'y'");
+    const [plan] = await db.admin<{ id: string }>(
+      `insert into public.development_plans (assessment_request_id, trainee_id, title, summary)
+       values ($1, $2, 'Plan', 'Summary') returning id`,
+      [request.id, enrolled],
+    );
+    await db.admin(
+      `insert into public.development_plan_items (plan_id, position, item_type, title, description, lesson_id)
+       values ($1, 0, 'activity', 'Read', 'Read it', $2), ($1, 1, 'activity', 'Other', 'Other', null)`,
+      [plan.id, paidLesson],
+    );
+
+    await db.as(enrolled, "select public.set_lesson_completion($1, true)", [paidLesson]);
+
+    const items = await db.as<{ title: string; completed_at: Date | null }>(
+      enrolled,
+      "select title, completed_at from public.development_plan_items order by position",
+    );
+    expect(items[0].completed_at).not.toBeNull();
+    expect(items[1].completed_at).toBeNull();
+  });
+
+  it("does not let a student change plan links", async () => {
+    expect(await failure(db.as(enrolled, "update public.development_plan_items set lesson_id = null"))).toContain(
+      "permission denied",
+    );
+  });
+});
+
 describe("saved resources", () => {
   it("lets students save and remove what they can read", async () => {
     await db.as(notEnrolled, "insert into public.saved_resources (user_id, resource_id) values ($1, $2)", [

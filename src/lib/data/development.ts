@@ -1,4 +1,5 @@
 import "server-only";
+import type { PlanOptions } from "@/lib/ai/schema";
 import type { Recommendation } from "@/lib/data/assessments";
 import { asUser } from "@/lib/db";
 import type { PlanItemType } from "@/lib/labels";
@@ -11,6 +12,9 @@ export type PlanItem = {
   title: string;
   description: string;
   scenario_id: string | null;
+  lesson_id: string | null;
+  lesson_course_slug: string | null;
+  estimated_minutes: number | null;
   completed_at: Date | null;
 };
 
@@ -70,8 +74,14 @@ export async function getDevelopment(userId: string): Promise<DevelopmentEntry[]
       );
       const items = plan
         ? await tx.rows<PlanItem>(
-            `select id, position, item_type, title, description, scenario_id, completed_at
-             from public.development_plan_items where plan_id = $1 order by position`,
+            `select i.id, i.position, i.item_type, i.title, i.description, i.scenario_id, i.lesson_id,
+               i.estimated_minutes, i.completed_at, c.slug as lesson_course_slug
+             from public.development_plan_items i
+             left join public.lessons l on l.id = i.lesson_id
+             left join public.course_modules m on m.id = l.module_id
+             left join public.courses c on c.id = m.course_id
+             where i.plan_id = $1
+             order by i.position`,
             [plan.id],
           )
         : [];
@@ -87,6 +97,29 @@ export async function getDevelopment(userId: string): Promise<DevelopmentEntry[]
     }
 
     return entries;
+  });
+}
+
+/**
+ * Public catalogue entries a plan can link to, favouring the approved topics.
+ * The list is sent to the AI provider, so it must stay free of personal data.
+ */
+export async function getPlanOptions(userId: string, competencies: string[]): Promise<PlanOptions> {
+  return asUser(userId, async (tx) => {
+    const lessons = await tx.rows<PlanOptions["lessons"][number]>(
+      `select l.id, l.title, c.title as course_title, c.competencies::text[] as competencies
+       from public.lessons l
+       join public.course_modules m on m.id = l.module_id
+       join public.courses c on c.id = m.course_id
+       where l.is_available and c.published
+       order by (c.competencies && $1::text[]::public.competency[]) desc, c.title, m.position, l.position
+       limit 40`,
+      [competencies],
+    );
+    const scenarios = await tx.rows<PlanOptions["scenarios"][number]>(
+      "select id, title, competency::text as competency from public.learning_scenarios where published order by title",
+    );
+    return { lessons, scenarios };
   });
 }
 
