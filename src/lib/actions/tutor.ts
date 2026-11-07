@@ -9,6 +9,7 @@ import {
   DISTRESS_RESPONSE,
   MAX_QUESTION_CHARACTERS,
   redactPersonalDetails,
+  SUPPORT_RESPONSE,
   type SuggestedLesson,
   TUTOR_LEVELS,
   type TutorSource,
@@ -77,6 +78,9 @@ export async function askTutor(input: unknown): Promise<TutorReply> {
       generate: provider.generateJson,
     });
     if (result.status === "failed") return { ok: false, message: result.message };
+    if (result.status === "support") {
+      return { ok: true, answer: SUPPORT_RESPONSE, sources: [], suggestedLessons: [], saved: false };
+    }
 
     await asUser(profile.id, (tx) =>
       tx.rows("select public.save_tutor_exchange($1, $2, $3, $4, $5)", [

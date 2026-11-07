@@ -31,7 +31,7 @@ The objective is to build a polished, functional MVP suitable for an innovation 
 
 ## Repository status
 
-The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app. AeroMind Academy is being built in phases: the catalogue, simulated enrolment, lesson player, quizzes, progress and learning dashboard exist. The AI tutor is built. Live AI plans are not yet connected.
+The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app. AeroMind Academy is being built in phases: the catalogue, simulated enrolment, lesson player, quizzes, progress and learning dashboard exist. The AI tutor is built and tested with real OpenAI answers. Live AI plans are not yet connected.
 
 ## Commands
 
@@ -149,7 +149,7 @@ All are optional. Placeholders live in the committed `.env.example`, and real va
 ## Architecture
 
 - All AI provider calls live in `src/lib/ai/`, are server-only, and sit behind `PlanGenerator` and `AiProvider`, so the provider can change without touching product code. With no key, `template.ts` builds the plan and the interface says no AI was used, and the tutor says it is unavailable. It never shows canned answers.
-- The tutor retrieves through `search_knowledge`, which runs as the student so RLS decides what the AI can see. It must never read assessment tables. Distress and fitness questions get fixed replies and are not sent to the provider. `scripts/index-knowledge.mjs` is an internal command with full database access, and the app must never import it.
+- The tutor retrieves through `search_knowledge`, which runs as the student so RLS decides what the AI can see. It must never read assessment tables. Distress and fitness questions get fixed replies and are not sent to the provider. If the provider flags distress the phrase check missed, the server replaces its answer with `SUPPORT_RESPONSE` and saves nothing. Have a qualified professional review these phrases and replies before real users join. `scripts/index-knowledge.mjs` is an internal command with full database access, and the app must never import it.
 - All application data access goes through `asUser()` in `src/lib/db/`. It runs queries with the `authenticated` or `anon` database role and the user's id, so RLS always applies on both databases. Only `src/lib/auth/accounts.ts` may use `systemQuery()`.
 - Never call `asUser()` inside another `asUser()`, and never hold a transaction open during an AI call. The built-in database has one connection, so nesting deadlocks.
 - `src/lib/db/hosted.ts` applies migrations and seeds demo data on first connection if they are missing. Accounts use Supabase Auth in hosted mode, and the app then issues its own signed session cookie.

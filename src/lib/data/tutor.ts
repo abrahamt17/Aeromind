@@ -118,6 +118,7 @@ export async function prepareTutorRequest(
       status: "ready",
       courseId: lesson.course_id,
       context: {
+        lessonId,
         courseTitle: lesson.course_title,
         lessonTitle: lesson.title,
         objectives: lesson.learning_objectives,
@@ -130,6 +131,9 @@ export async function prepareTutorRequest(
   });
 }
 
+/** Passages further away than this were not relevant in testing, so they are dropped. */
+const MAX_DISTANCE = 0.75;
+
 export async function retrieveKnowledge(
   userId: string,
   courseId: string,
@@ -138,8 +142,9 @@ export async function retrieveKnowledge(
   return asUser(userId, (tx) =>
     tx.rows<RetrievedChunk>(
       `select content, lesson_id, title, source_name, source_url
-       from public.search_knowledge($1::text::extensions.vector, $2, 5)`,
-      [JSON.stringify(embedding), courseId],
+       from public.search_knowledge($1::text::extensions.vector, $2, 5)
+       where distance < $3`,
+      [JSON.stringify(embedding), courseId, MAX_DISTANCE],
     ),
   );
 }

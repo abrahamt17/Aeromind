@@ -26,23 +26,30 @@ export function LessonBody({ body }: { body: string }) {
           );
         }
 
-        const lines = text.split("\n");
-        if (lines.every((line) => line.startsWith("- "))) {
-          return (
-            <ul key={index} className="list-disc space-y-2 pl-5">
-              {lines.map((line) => (
+        // AI answers can place a list straight after a line of text.
+        const groups: { list: boolean; lines: string[] }[] = [];
+        for (const line of text.split("\n").map((item) => item.trim())) {
+          if (!line) continue;
+          const list = line.startsWith("- ");
+          const last = groups.at(-1);
+          if (last?.list === list) last.lines.push(line);
+          else groups.push({ list, lines: [line] });
+        }
+
+        return groups.map((group, position) =>
+          group.list ? (
+            <ul key={`${index}-${position}`} className="list-disc space-y-2 pl-5">
+              {group.lines.map((line) => (
                 <li key={line}>
                   <Inline text={line.slice(2)} />
                 </li>
               ))}
             </ul>
-          );
-        }
-
-        return (
-          <p key={index}>
-            <Inline text={text} />
-          </p>
+          ) : (
+            <p key={`${index}-${position}`}>
+              <Inline text={group.lines.join(" ")} />
+            </p>
+          ),
         );
       })}
     </div>

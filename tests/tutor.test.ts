@@ -7,11 +7,13 @@ import {
   classifyQuestion,
   DISTRESS_RESPONSE,
   redactPersonalDetails,
+  SUPPORT_RESPONSE,
   type TutorContext,
   type TutorDependencies,
 } from "../src/lib/ai/tutor";
 
 const context: TutorContext = {
+  lessonId: "lesson-1",
   courseTitle: "Stress Management in Aviation",
   lessonTitle: "What stress is",
   objectives: ["Describe stress"],
@@ -41,6 +43,7 @@ const goodReply = {
   answer: "Acute stress is a short-term reaction.",
   source_numbers: [1],
   suggested_lesson_titles: ["Noticing your early signs"],
+  support_needed: false,
 };
 
 describe("question classification", () => {
@@ -49,6 +52,10 @@ describe("question classification", () => {
     "i don't want to be alive any more",
     "I've been thinking about suicide",
     "I keep wanting to hurt myself",
+    "I feel hopeless and I can't cope any more. There's no point in anything.",
+    "I can\u2019t go on like this",
+    "i don\u2019t want to be here",
+    "nothing matters anymore",
   ])("treats %j as distress", (question) => {
     expect(classifyQuestion(question)).toBe("distress");
   });
@@ -65,8 +72,15 @@ describe("question classification", () => {
     "What does fitness to fly mean in general?",
     "Explain this more simply",
     "Why do pilots use checklists when stressed?",
+    "I can't cope with crosswinds, how do I practise?",
+    "Is it hopeless to learn the radio calls?",
   ])("lets %j through as a learning question", (question) => {
     expect(classifyQuestion(question)).toBe("learning");
+  });
+
+  it("gives a truthful reply when the provider spots distress", () => {
+    expect(SUPPORT_RESPONSE).toContain("112");
+    expect(SUPPORT_RESPONSE).not.toContain("wasn't sent to an AI provider");
   });
 
   it("gives a distress reply with emergency guidance and no AI", () => {
@@ -94,6 +108,41 @@ describe("answering", () => {
     );
 
     expect(result.status === "answered" && result.sources.map((source) => source.title)).toEqual(["What stress is"]);
+  });
+
+  it("replaces the model's words when it flags distress", async () => {
+    const result = await answerLearningQuestion(
+      "Things feel too much",
+      "beginner",
+      context,
+      dependencies({ ...goodReply, answer: "Try a breathing routine.", support_needed: true }),
+    );
+
+    expect(result).toEqual({ status: "support" });
+  });
+
+  it("can cite the current lesson", async () => {
+    const result = await answerLearningQuestion(
+      "Help",
+      "beginner",
+      context,
+      dependencies({ ...goodReply, source_numbers: [0] }),
+    );
+
+    expect(result.status === "answered" && result.sources).toEqual([
+      { title: "What stress is", source_name: "Stress Management in Aviation", lesson_id: "lesson-1", url: null },
+    ]);
+  });
+
+  it("does not suggest the current lesson or one already cited", async () => {
+    const result = await answerLearningQuestion(
+      "Help",
+      "beginner",
+      { ...context, outline: [{ id: "lesson-1", title: "What stress is" }] },
+      dependencies({ ...goodReply, suggested_lesson_titles: ["What stress is"] }),
+    );
+
+    expect(result.status === "answered" && result.suggestedLessons).toEqual([]);
   });
 
   it("ignores suggested lessons outside the course outline", async () => {
@@ -127,7 +176,7 @@ describe("answering", () => {
       ].sort(),
     );
     expect(sent.level).toBe("advanced");
-    expect(sent.sources[0]).toEqual({ number: 1, title: chunk.title, text: chunk.content });
+    expect(sent.sources[1]).toEqual({ number: 1, title: chunk.title, text: chunk.content });
   });
 
   it.each([
