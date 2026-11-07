@@ -1,4 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
+import { vector } from "@electric-sql/pglite-pgvector";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { applySchema } from "../../src/lib/db/bootstrap";
 import { hashPassword, verifyPassword } from "../../src/lib/db/passwords";
@@ -7,7 +8,7 @@ import { seedDemoData } from "../../src/lib/db/seed";
 let pg: PGlite;
 
 beforeAll(async () => {
-  pg = new PGlite();
+  pg = new PGlite({ extensions: { vector } });
   await applySchema(pg);
   await seedDemoData(pg);
 });

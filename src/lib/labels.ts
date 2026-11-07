@@ -39,6 +39,45 @@ export const VERIFICATION_LABELS = {
 
 export type VerificationStatus = keyof typeof VERIFICATION_LABELS;
 
+export const COURSE_KIND_LABELS = {
+  aeromind_original: "AeroMind Original",
+  expert: "Expert course",
+} as const;
+
+export type CourseKind = keyof typeof COURSE_KIND_LABELS;
+
+export const COURSE_LEVEL_LABELS = {
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+  advanced: "Advanced",
+} as const;
+
+export type CourseLevel = keyof typeof COURSE_LEVEL_LABELS;
+
+export const REVIEW_STATUS_LABELS = {
+  draft: "Draft",
+  awaiting_professional_review: "Draft: awaiting professional review",
+  professionally_reviewed: "Professionally reviewed",
+} as const;
+
+export type ReviewStatus = keyof typeof REVIEW_STATUS_LABELS;
+
+export const RESOURCE_ACCESS_LABELS = {
+  public: "Public",
+  free_account: "Free account",
+  enrolled: "Enrolled students",
+  paid: "Paid",
+} as const;
+
+export type ResourceAccess = keyof typeof RESOURCE_ACCESS_LABELS;
+
+export function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
 export const PLAN_ITEM_LABELS = {
   objective: "Learning objective",
   activity: "Activity",

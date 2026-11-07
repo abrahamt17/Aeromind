@@ -1,4 +1,5 @@
 import { PGlite, type Transaction } from "@electric-sql/pglite";
+import { vector } from "@electric-sql/pglite-pgvector";
 import { applySchema } from "../../src/lib/db/bootstrap";
 
 /** Runs the real migrations on an in-memory copy of the built-in database. */
@@ -8,7 +9,7 @@ export class TestDatabase {
   private constructor(readonly pg: PGlite) {}
 
   static async create(): Promise<TestDatabase> {
-    const pg = new PGlite();
+    const pg = new PGlite({ extensions: { vector } });
     await applySchema(pg);
     return new TestDatabase(pg);
   }

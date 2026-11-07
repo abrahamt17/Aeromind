@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import postgres from "postgres";
 import { applyMigrations } from "@/lib/db/bootstrap";
 import { seedDemoData, type SeedDatabase } from "@/lib/db/seed";
+import { seedAcademy } from "@/lib/db/seed-academy";
 
 export type HostedDatabase = postgres.Sql;
 
@@ -69,12 +70,12 @@ export async function openHostedDatabase(url: string): Promise<HostedDatabase> {
     },
   });
 
-  const [{ migrated }] = await sql<{ migrated: boolean }[]>`
-    select to_regclass('public.profiles') is not null as migrated
-  `;
-  if (!migrated) {
-    await sql.begin((tx) => applyMigrations({ exec: (script) => tx.unsafe(script) }));
-  }
+  await sql.begin((tx) =>
+    applyMigrations({
+      exec: (script) => tx.unsafe(script),
+      select: async <T>(query: string) => (await tx.unsafe(query)) as unknown as T[],
+    }),
+  );
 
   // Plan items are the last thing seeded, so this also catches an interrupted seed.
   const [{ seeded }] = await sql<{ seeded: boolean }[]>`
@@ -91,6 +92,14 @@ export async function openHostedDatabase(url: string): Promise<HostedDatabase> {
     };
     await seedDemoData(seedDatabase, createDemoUser);
   }
+
+  await sql.begin((tx) =>
+    seedAcademy({
+      async query<T>(query: string, params: unknown[] = []) {
+        return { rows: (await tx.unsafe(query, toParameters(params))) as unknown as T[] };
+      },
+    }),
+  );
 
   return sql;
 }

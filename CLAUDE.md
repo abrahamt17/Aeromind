@@ -31,7 +31,7 @@ The objective is to build a polished, functional MVP suitable for an innovation 
 
 ## Repository status
 
-The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app.
+The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app. AeroMind Academy is being built in phases: the catalogue, course pages, resources and simulated enrolment exist. The lesson player, quizzes, AI tutor and live AI plans do not yet.
 
 ## Commands
 
@@ -113,6 +113,11 @@ All are optional. Placeholders live in the committed `.env.example`, and real va
 - `/professionals` — Professional directory
 - `/professionals/[id]` — Professional profile
 - `/privacy` — Privacy notice
+- `/academy` — Course catalogue
+- `/academy/courses/[slug]` — Course page
+- `/academy/courses/[slug]/lessons/[lessonId]` — Lesson
+- `/academy/instructors/[slug]` — Instructor profile
+- `/academy/resources` — Learning resources
 
 ### Authentication
 
@@ -150,6 +155,8 @@ All are optional. Placeholders live in the committed `.env.example`, and real va
 - Mutations are server actions in `src/lib/actions/` that authenticate, validate with Zod, then write. Forms use `ActionForm` and its field components, which show errors and refill values.
 - Clients change assessment status, consent, approvals, report release and plans only through the SECURITY DEFINER functions in `supabase/migrations/*_workflow.sql`. Internal helpers live in the `app_private` schema.
 - New tables get no client access by default. Each migration must add explicit grants, including column lists where fields are protected, plus RLS policies.
+- Migrations run once each, tracked in `app_private.schema_migrations` by `applyMigrations()` on both databases at startup. Never edit a migration that has shipped: add a new one.
+- Academy outlines are public. Lesson text stays in `lesson_content`, readable only for preview lessons or enrolled students. Enrolment happens only through `enroll_in_course`. Demo catalogue content lives in `src/lib/demo/academy.ts` and loads through `seedAcademy()`.
 - `tests/db/` runs the real migrations on an in-memory database, using a separate query role for each user. Add a test here for every new permission rule.
 
 ## Database entities
@@ -238,7 +245,7 @@ The AI may create:
 
 It must never diagnose, determine fitness to fly, predict certification outcomes or claim that learning activity proves psychological fitness.
 
-The MVP has no free-text AI chat. Scenarios are pre-authored and choice-based, with authored feedback, so no personal disclosures reach the AI. Any later free-text feature needs a designed response for users who disclose distress.
+Development-plan scenarios are pre-authored and choice-based, with authored feedback. The Academy AI tutor is the only free-text AI feature. It must ship with a designed response for users who disclose distress, receive no assessment data, names, emails or user IDs, and stay separate from the development-plan generator.
 
 Show a persistent notice on AI content that it is educational rather than clinical, and offer follow-up with the professional.
 
@@ -278,7 +285,7 @@ Show a persistent notice on AI content that it is educational rather than clinic
 - Payment processing.
 - Airline enterprise portals.
 - Complex calendar integrations.
-- Free-text AI chat.
+- Free-text AI chat outside the Academy tutor.
 - In-app messaging.
 - Admin interface.
 - Multi-language interface (the MVP interface is English).

@@ -2,9 +2,11 @@ import "server-only";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
-import { applySchema } from "@/lib/db/bootstrap";
+import { vector } from "@electric-sql/pglite-pgvector";
+import { applyMigrations, applySchema, localRunner } from "@/lib/db/bootstrap";
 import { type HostedDatabase, openHostedDatabase, toParameters } from "@/lib/db/hosted";
 import { seedDemoData } from "@/lib/db/seed";
+import { seedAcademy } from "@/lib/db/seed-academy";
 
 const DATA_DIRECTORY = join(process.cwd(), ".data", "pglite");
 
@@ -17,16 +19,19 @@ export function isHosted(): boolean {
 
 async function openLocalDatabase(): Promise<PGlite> {
   mkdirSync(DATA_DIRECTORY, { recursive: true });
-  const pg = new PGlite(DATA_DIRECTORY);
+  const pg = new PGlite(DATA_DIRECTORY, { extensions: { vector } });
   await pg.waitReady;
 
   const { rows } = await pg.query<{ ready: boolean }>(
     "select to_regclass('public.profiles') is not null as ready",
   );
-  if (!rows[0].ready) {
-    await applySchema(pg);
-    await seedDemoData(pg);
-  }
+  await pg.transaction(async (tx) => {
+    await (rows[0].ready ? applyMigrations(localRunner(tx)) : applySchema(tx));
+  });
+  if (!rows[0].ready) await seedDemoData(pg);
+  await pg.transaction((tx) =>
+    seedAcademy({ query: async <T>(sql: string, params?: unknown[]) => tx.query<T>(sql, params) }),
+  );
 
   return pg;
 }
