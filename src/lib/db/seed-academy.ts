@@ -7,7 +7,7 @@ import { scenarioContentSchema } from "@/lib/schemas/scenario";
 const ACADEMY_SEED_LOCK_ID = 7_204_119;
 
 /** Increase this when demo catalogue content changes, so existing databases update. */
-export const ACADEMY_CONTENT_VERSION = 2;
+export const ACADEMY_CONTENT_VERSION = 3;
 
 /**
  * Brings the demo catalogue up to date. Rows are matched on stable keys, so lesson
@@ -55,11 +55,11 @@ export async function seedAcademy(db: SeedDatabase): Promise<void> {
       `insert into public.courses (
          slug, kind, instructor_id, title, summary, description, category, competencies,
          level, audience, learning_objectives, duration_minutes, review_status,
-         is_sample, featured, published
+         is_sample, featured, published, ai_indexing_allowed
        )
        values (
          $1, $2, $3, $4, $5, $6, $7, $8::text[]::public.competency[], $9, $10, $11, $12,
-         'awaiting_professional_review', true, $13, true
+         'awaiting_professional_review', true, $13, true, true
        )
        on conflict (slug) do update set
          kind = excluded.kind, instructor_id = excluded.instructor_id, title = excluded.title,
@@ -67,7 +67,8 @@ export async function seedAcademy(db: SeedDatabase): Promise<void> {
          category = excluded.category, competencies = excluded.competencies,
          level = excluded.level, audience = excluded.audience,
          learning_objectives = excluded.learning_objectives,
-         duration_minutes = excluded.duration_minutes, featured = excluded.featured
+         duration_minutes = excluded.duration_minutes, featured = excluded.featured,
+         ai_indexing_allowed = excluded.ai_indexing_allowed
        returning id`,
       [
         course.slug,

@@ -9,12 +9,15 @@ import { EnrollPanel } from "@/components/academy/enroll-panel";
 import { CompleteLessonButton } from "@/components/academy/lesson-controls";
 import { LessonBody } from "@/components/academy/lesson-body";
 import { LessonQuiz } from "@/components/academy/lesson-quiz";
+import { TutorPanel } from "@/components/academy/tutor-panel";
 import { SampleLabel } from "@/components/brand/sample-label";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { SiteFooter, SiteHeader } from "@/components/layout/site-chrome";
 import { EmptyState, LinkButton, Panel } from "@/components/ui-kit";
+import { getAiProvider } from "@/lib/ai/provider";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { getLesson, recordLessonView } from "@/lib/data/academy";
+import { getTutorMessages } from "@/lib/data/tutor";
 import { REVIEW_STATUS_LABELS } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +37,10 @@ async function Lesson({ params }: { params: PageProps<"/academy/courses/[slug]/l
   const courseHref = `/academy/courses/${course.slug}`;
   const isTrainee = profile?.role === "trainee";
   if (isTrainee && content && course.enrolled) await recordLessonView(profile.id, lesson.id);
+  const tutorMessages = isTrainee && content ? await getTutorMessages(profile.id, lesson.id) : [];
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem]">
       <div className="min-w-0">
         <Link href={courseHref} className="text-sm font-medium text-brand underline-offset-4 hover:underline">
           {course.title}
@@ -158,7 +162,25 @@ async function Lesson({ params }: { params: PageProps<"/academy/courses/[slug]/l
         </nav>
       </div>
 
-      <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start">
+      <aside className="min-w-0 space-y-4">
+        {isTrainee && content ? (
+          <div className="lg:sticky lg:top-6">
+            <TutorPanel
+              key={lesson.id}
+              lessonId={lesson.id}
+              courseSlug={course.slug}
+              connected={Boolean(getAiProvider())}
+              initialMessages={tutorMessages}
+            />
+          </div>
+        ) : !profile ? (
+          <Panel title="AI tutor" description="Sign in with a trainee account to ask questions about this lesson.">
+            <LinkButton href="/sign-in" variant="outline" className="w-full">
+              Sign in
+            </LinkButton>
+          </Panel>
+        ) : null}
+
         <Panel title="Course content">
           <div className="space-y-4">
             {course.modules.map((module) => (

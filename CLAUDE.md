@@ -31,7 +31,7 @@ The objective is to build a polished, functional MVP suitable for an innovation 
 
 ## Repository status
 
-The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app. AeroMind Academy is being built in phases: the catalogue, simulated enrolment, lesson player, quizzes, progress and learning dashboard exist. The AI tutor and live AI plans do not yet.
+The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app. AeroMind Academy is being built in phases: the catalogue, simulated enrolment, lesson player, quizzes, progress and learning dashboard exist. The AI tutor is built. Live AI plans are not yet connected.
 
 ## Commands
 
@@ -44,6 +44,8 @@ npm test                                 # All unit and database permission test
 npx vitest run path/to/file.test.ts      # A single test file
 npx vitest run -t "test name"            # A single test by name
 npm run db:reset                         # Delete built-in database data only, recreated on next start (stop the app first)
+npm run academy:index                    # Index changed lessons for the AI tutor (needs OPENAI_API_KEY)
+npm run academy:index -- --resource <id> --file <path>   # Index a PDF, text or Markdown resource that allows AI use
 ```
 
 Run lint, type-check and relevant tests after each change. There are no automated browser tests yet, so check the full journey in the browser as both roles.
@@ -76,7 +78,9 @@ All are optional. Placeholders live in the committed `.env.example`, and real va
 - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: required with `DATABASE_URL`
 - `SUPABASE_SECRET_KEY` (server only): required with `DATABASE_URL`, used only to create demo users
 - `SESSION_SECRET`: a random one is generated in `.data/` if unset, and hosted deployments must set it
-- `OPENAI_API_KEY` and `OPENAI_MODEL`: without both, plans use the pre-written template
+- `OPENAI_API_KEY` and `OPENAI_MODEL`: without both, plans use the pre-written template and the tutor shows as unavailable
+- `AI_PROVIDER`, `AI_CHAT_MODEL`, `AI_EMBEDDING_MODEL`: optional provider settings
+- `TUTOR_DAILY_LIMIT` and `TUTOR_GLOBAL_DAILY_LIMIT`: optional limits on tutor questions per day
 
 ## User roles
 
@@ -144,7 +148,8 @@ All are optional. Placeholders live in the committed `.env.example`, and real va
 
 ## Architecture
 
-- All AI provider calls live in `src/lib/ai/`, are server-only, and sit behind `PlanGenerator`, so the provider can change without touching product code. With no key, `template.ts` builds the plan and the interface says no AI was used.
+- All AI provider calls live in `src/lib/ai/`, are server-only, and sit behind `PlanGenerator` and `AiProvider`, so the provider can change without touching product code. With no key, `template.ts` builds the plan and the interface says no AI was used, and the tutor says it is unavailable. It never shows canned answers.
+- The tutor retrieves through `search_knowledge`, which runs as the student so RLS decides what the AI can see. It must never read assessment tables. Distress and fitness questions get fixed replies and are not sent to the provider. `scripts/index-knowledge.mjs` is an internal command with full database access, and the app must never import it.
 - All application data access goes through `asUser()` in `src/lib/db/`. It runs queries with the `authenticated` or `anon` database role and the user's id, so RLS always applies on both databases. Only `src/lib/auth/accounts.ts` may use `systemQuery()`.
 - Never call `asUser()` inside another `asUser()`, and never hold a transaction open during an AI call. The built-in database has one connection, so nesting deadlocks.
 - `src/lib/db/hosted.ts` applies migrations and seeds demo data on first connection if they are missing. Accounts use Supabase Auth in hosted mode, and the app then issues its own signed session cookie.
