@@ -53,50 +53,50 @@ export async function getDevelopment(userId: string): Promise<DevelopmentEntry[]
       [userId],
     );
 
-    const entries: DevelopmentEntry[] = [];
-    for (const request of requests) {
-      const approved = await tx.rows<Recommendation>(
-        `select id, competency, recommendation_text, educational_summary, approved_for_ai
-         from public.professional_recommendations
-         where assessment_request_id = $1 and approved_for_ai
-         order by created_at`,
-        [request.id],
-      );
-      const consent = await tx.one(
-        `select 1 from public.consents
-         where assessment_request_id = $1 and purpose = 'ai_development_plan' and withdrawn_at is null`,
-        [request.id],
-      );
-      const plan = await tx.one<Omit<Plan, "items">>(
-        `select id, title, summary, model, is_sample, created_at
-         from public.development_plans where assessment_request_id = $1`,
-        [request.id],
-      );
-      const items = plan
-        ? await tx.rows<PlanItem>(
+    return Promise.all(
+      requests.map(async (request): Promise<DevelopmentEntry> => {
+        const [approved, consent, plan, items] = await Promise.all([
+          tx.rows<Recommendation>(
+            `select id, competency, recommendation_text, educational_summary, approved_for_ai
+             from public.professional_recommendations
+             where assessment_request_id = $1 and approved_for_ai
+             order by created_at`,
+            [request.id],
+          ),
+          tx.one(
+            `select 1 from public.consents
+             where assessment_request_id = $1 and purpose = 'ai_development_plan' and withdrawn_at is null`,
+            [request.id],
+          ),
+          tx.one<Omit<Plan, "items">>(
+            `select id, title, summary, model, is_sample, created_at
+             from public.development_plans where assessment_request_id = $1`,
+            [request.id],
+          ),
+          tx.rows<PlanItem>(
             `select i.id, i.position, i.item_type, i.title, i.description, i.scenario_id, i.lesson_id,
                i.estimated_minutes, i.completed_at, c.slug as lesson_course_slug
              from public.development_plan_items i
+             join public.development_plans p on p.id = i.plan_id
              left join public.lessons l on l.id = i.lesson_id
              left join public.course_modules m on m.id = l.module_id
              left join public.courses c on c.id = m.course_id
-             where i.plan_id = $1
+             where p.assessment_request_id = $1
              order by i.position`,
-            [plan.id],
-          )
-        : [];
+            [request.id],
+          ),
+        ]);
 
-      entries.push({
-        request_id: request.id,
-        professional_id: request.professional_id,
-        professional_name: request.professional_name,
-        approved_recommendations: approved,
-        has_ai_consent: Boolean(consent),
-        plan: plan ? { ...plan, items } : null,
-      });
-    }
-
-    return entries;
+        return {
+          request_id: request.id,
+          professional_id: request.professional_id,
+          professional_name: request.professional_name,
+          approved_recommendations: approved,
+          has_ai_consent: Boolean(consent),
+          plan: plan ? { ...plan, items } : null,
+        };
+      }),
+    );
   });
 }
 

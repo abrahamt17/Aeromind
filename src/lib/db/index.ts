@@ -87,8 +87,11 @@ export async function asUser<T>(userId: string | null, work: (tx: Tx) => Promise
     const sql = await getHosted(DATABASE_URL);
 
     return (await sql.begin(async (transaction) => {
-      await transaction.unsafe(`set local role ${role}`);
-      await transaction.unsafe("select set_config('request.jwt.claims', $1, true)", [claims]);
+      // One round trip for both settings, because this runs on every request.
+      await transaction.unsafe(
+        "select set_config('role', $1, true), set_config('request.jwt.claims', $2, true)",
+        [role, claims],
+      );
 
       return work(
         toTx(async (query, params) => [...(await transaction.unsafe(query, toParameters(params)))]),
@@ -102,7 +105,15 @@ export async function asUser<T>(userId: string | null, work: (tx: Tx) => Promise
     await transaction.exec(`set local role ${role}`);
     await transaction.query("select set_config('request.jwt.claims', $1, true)", [claims]);
 
-    return work(toTx(async (query, params) => (await transaction.query(query, params)).rows));
+    // One connection, so queries started together run one after another.
+    let queue: Promise<unknown> = Promise.resolve();
+    return work(
+      toTx((query, params) => {
+        const result = queue.then(async () => (await transaction.query(query, params)).rows);
+        queue = result.catch(() => {});
+        return result;
+      }),
+    );
   }) as Promise<T>;
 }
 

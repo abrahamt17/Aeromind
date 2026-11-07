@@ -43,7 +43,8 @@ export type LearningDashboard = {
 
 export async function getLearningDashboard(userId: string): Promise<LearningDashboard> {
   return asUser(userId, async (tx) => {
-    const courses = await tx.rows<EnrolledCourse>(
+    const [courses, recent, quizzes, saved, recommended, activity] = await Promise.all([
+      tx.rows<EnrolledCourse>(
       `select c.id, c.slug, c.title, c.category,
          (select count(*)::int
           from public.lessons l
@@ -70,9 +71,8 @@ export async function getLearningDashboard(userId: string): Promise<LearningDash
        where e.user_id = $1
        order by e.enrolled_at desc`,
       [userId],
-    );
-
-    const recent = await tx.rows<RecentLesson>(
+      ),
+      tx.rows<RecentLesson>(
       `select p.lesson_id, l.title as lesson_title, c.slug as course_slug, c.title as course_title,
          p.last_viewed_at, p.completed_at
        from public.lesson_progress p
@@ -83,9 +83,8 @@ export async function getLearningDashboard(userId: string): Promise<LearningDash
        order by p.last_viewed_at desc
        limit 5`,
       [userId],
-    );
-
-    const quizzes = await tx.rows<QuizResult>(
+      ),
+      tx.rows<QuizResult>(
       `select a.id, a.lesson_id, l.title as lesson_title, c.slug as course_slug,
          a.score, a.total, a.created_at
        from public.quiz_attempts a
@@ -96,18 +95,16 @@ export async function getLearningDashboard(userId: string): Promise<LearningDash
        order by a.created_at desc
        limit 5`,
       [userId],
-    );
-
-    const saved = await tx.rows<Resource>(
+      ),
+      tx.rows<Resource>(
       `${RESOURCE_SELECT}
        join public.saved_resources s on s.resource_id = r.id
        where s.user_id = $1
        order by s.created_at desc`,
       [userId],
-    );
-
-    // Competencies stay on this page and are never sent to the learning tutor.
-    const recommended = await tx.rows<CourseSummary>(
+      ),
+      // Competencies stay on this page and are never sent to the learning tutor.
+      tx.rows<CourseSummary>(
       `${COURSE_SUMMARY_SELECT}
        where not exists (
          select 1 from public.course_enrollments e where e.course_id = c.id and e.user_id = $1
@@ -124,9 +121,8 @@ export async function getLearningDashboard(userId: string): Promise<LearningDash
          c.title
        limit 2`,
       [userId],
-    );
-
-    const activity = await tx.one<{ days: number }>(
+      ),
+      tx.one<{ days: number }>(
       `select count(distinct day)::int as days
        from (
          select last_viewed_at::date as day from public.lesson_progress
@@ -136,7 +132,8 @@ export async function getLearningDashboard(userId: string): Promise<LearningDash
          where user_id = $1 and created_at > now() - interval '7 days'
        ) days`,
       [userId],
-    );
+      ),
+    ]);
 
     return { courses, recent, quizzes, saved, recommended, activeDaysThisWeek: activity?.days ?? 0 };
   });

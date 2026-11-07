@@ -1,6 +1,6 @@
 import "server-only";
 import type { QuizQuestion } from "@/lib/quiz";
-import { asUser } from "@/lib/db";
+import { asUser, type Tx } from "@/lib/db";
 import type { LessonReference } from "@/lib/demo/academy";
 import type { CourseKind, CourseLevel, ResourceAccess, ReviewStatus, VerificationStatus } from "@/lib/labels";
 
@@ -87,69 +87,69 @@ export type CourseDetail = CourseSummary & {
   enrolled: boolean;
 };
 
-export async function getCourse(slug: string, userId: string | null): Promise<CourseDetail | null> {
-  return asUser(userId, async (tx) => {
-    const course = await tx.one<
-      CourseSummary & {
-        description: string;
-        audience: string;
-        learning_objectives: string[];
-        instructor_id: string | null;
-      }
-    >(
-      `select course.*, c.description, c.audience, c.learning_objectives, c.instructor_id
-       from public.courses c
-       join (${COURSE_SUMMARY_SELECT}) course on course.id = c.id
-       where c.slug = $1`,
-      [slug],
-    );
-    if (!course) return null;
+async function loadCourse(tx: Tx, slug: string, userId: string | null): Promise<CourseDetail | null> {
+  const course = await tx.one<
+    CourseSummary & {
+      description: string;
+      audience: string;
+      learning_objectives: string[];
+      instructor_id: string | null;
+    }
+  >(
+    `select course.*, c.description, c.audience, c.learning_objectives, c.instructor_id
+     from public.courses c
+     join (${COURSE_SUMMARY_SELECT}) course on course.id = c.id
+     where c.slug = $1`,
+    [slug],
+  );
+  if (!course) return null;
 
-    const instructor = course.instructor_id
-      ? await tx.one<InstructorSummary>(
+  const [instructor, modules, lessons, resources, enrollment] = await Promise.all([
+    course.instructor_id
+      ? tx.one<InstructorSummary>(
           `select id, slug, display_name, title, bio, verification_status, is_sample
            from public.instructor_profiles where id = $1`,
           [course.instructor_id],
         )
-      : null;
-
-    const modules = await tx.rows<Omit<ModuleOutline, "lessons">>(
+      : null,
+    tx.rows<Omit<ModuleOutline, "lessons">>(
       "select id, title, summary from public.course_modules where course_id = $1 order by position",
       [course.id],
-    );
-    const lessons = await tx.rows<LessonOutline & { module_id: string }>(
+    ),
+    tx.rows<LessonOutline & { module_id: string }>(
       `select l.id, l.module_id, l.title, l.summary, l.duration_minutes, l.is_preview, l.is_available
        from public.lessons l
        join public.course_modules m on m.id = l.module_id
        where m.course_id = $1
        order by l.position`,
       [course.id],
-    );
-    const resources = await tx.rows<Resource>(
+    ),
+    tx.rows<Resource>(
       `${RESOURCE_SELECT}
        join public.course_resources cr on cr.resource_id = r.id
        where cr.course_id = $1
        order by r.title`,
       [course.id],
-    );
-    const enrollment = userId
-      ? await tx.one("select 1 from public.course_enrollments where course_id = $1 and user_id = $2", [
-          course.id,
-          userId,
-        ])
-      : null;
+    ),
+    userId
+      ? tx.one("select 1 from public.course_enrollments where course_id = $1 and user_id = $2", [course.id, userId])
+      : null,
+  ]);
 
-    return {
-      ...course,
-      instructor,
-      modules: modules.map((module) => ({
-        ...module,
-        lessons: lessons.filter((lesson) => lesson.module_id === module.id),
-      })),
-      resources,
-      enrolled: Boolean(enrollment),
-    };
-  });
+  return {
+    ...course,
+    instructor,
+    modules: modules.map((module) => ({
+      ...module,
+      lessons: lessons.filter((lesson) => lesson.module_id === module.id),
+    })),
+    resources,
+    enrolled: Boolean(enrollment),
+  };
+}
+
+export async function getCourse(slug: string, userId: string | null): Promise<CourseDetail | null> {
+  return asUser(userId, (tx) => loadCourse(tx, slug, userId));
 }
 
 export type LessonDetail = {
@@ -172,68 +172,70 @@ export async function getLesson(
   lessonId: string,
   userId: string | null,
 ): Promise<LessonDetail | null> {
-  const course = await getCourse(slug, userId);
-  if (!course) return null;
+  return asUser(userId, async (tx) => {
+    const course = await loadCourse(tx, slug, userId);
+    if (!course) return null;
 
-  const ordered = course.modules.flatMap((module) =>
-    module.lessons.map((lesson) => ({ lesson, moduleTitle: module.title })),
-  );
-  const index = ordered.findIndex(({ lesson }) => lesson.id === lessonId);
-  if (index < 0) return null;
+    const ordered = course.modules.flatMap((module) =>
+      module.lessons.map((lesson) => ({ lesson, moduleTitle: module.title })),
+    );
+    const index = ordered.findIndex(({ lesson }) => lesson.id === lessonId);
+    if (index < 0) return null;
 
-  const courseLessonIds = ordered.map(({ lesson }) => lesson.id);
-  const learning = await asUser(userId, async (tx) => {
-    const content = await tx.one<NonNullable<LessonDetail["content"]>>(
-      "select body, learning_objectives, references_list from public.lesson_content where lesson_id = $1",
-      [lessonId],
-    );
-    const quiz = content
-      ? await tx.rows<QuizQuestion>(
-          "select id, prompt, options from public.quiz_questions where lesson_id = $1 order by position",
-          [lessonId],
-        )
-      : [];
-    if (!userId) return { content, quiz, lastScore: null, completedIds: new Set<string>(), scenario: null };
+    const [content, quiz, lastScore, progress, scenario] = await Promise.all([
+      tx.one<NonNullable<LessonDetail["content"]>>(
+        "select body, learning_objectives, references_list from public.lesson_content where lesson_id = $1",
+        [lessonId],
+      ),
+      tx.rows<QuizQuestion>(
+        "select id, prompt, options from public.quiz_questions where lesson_id = $1 order by position",
+        [lessonId],
+      ),
+      userId
+        ? tx.one<{ score: number; total: number }>(
+            `select score, total from public.quiz_attempts
+             where lesson_id = $1 and user_id = $2 order by created_at desc limit 1`,
+            [lessonId, userId],
+          )
+        : null,
+      userId
+        ? tx.rows<{ lesson_id: string }>(
+            `select lesson_id from public.lesson_progress
+             where user_id = $1 and lesson_id = any ($2::uuid[]) and completed_at is not null`,
+            [userId, ordered.map(({ lesson }) => lesson.id)],
+          )
+        : [],
+      // Scenarios are available to signed-in users only.
+      userId
+        ? tx.one<{ id: string; title: string; summary: string }>(
+            "select id, title, summary from public.learning_scenarios where lesson_id = $1 and published",
+            [lessonId],
+          )
+        : null,
+    ]);
 
-    const lastScore = await tx.one<{ score: number; total: number }>(
-      `select score, total from public.quiz_attempts
-       where lesson_id = $1 and user_id = $2 order by created_at desc limit 1`,
-      [lessonId, userId],
-    );
-    const progress = await tx.rows<{ lesson_id: string }>(
-      `select lesson_id from public.lesson_progress
-       where user_id = $1 and lesson_id = any ($2::uuid[]) and completed_at is not null`,
-      [userId, courseLessonIds],
-    );
-    const scenario = await tx.one<{ id: string; title: string; summary: string }>(
-      "select id, title, summary from public.learning_scenarios where lesson_id = $1 and published",
-      [lessonId],
-    );
+    const available = (position: number, step: number) => {
+      for (let i = position; i >= 0 && i < ordered.length; i += step) {
+        if (ordered[i].lesson.is_available) return ordered[i].lesson;
+      }
+      return null;
+    };
+    const completedIds = new Set(progress.map((row) => row.lesson_id));
+
     return {
+      course,
+      lesson: ordered[index].lesson,
+      moduleTitle: ordered[index].moduleTitle,
       content,
       quiz,
       lastScore,
-      completedIds: new Set(progress.map((row) => row.lesson_id)),
+      completed: completedIds.has(lessonId),
+      completedIds,
       scenario,
+      previous: available(index - 1, -1),
+      next: available(index + 1, 1),
     };
   });
-
-  const available = (position: number, step: number) => {
-    for (let i = position; i >= 0 && i < ordered.length; i += step) {
-      if (ordered[i].lesson.is_available) return ordered[i].lesson;
-    }
-    return null;
-  };
-
-  return {
-    course,
-    lesson: ordered[index].lesson,
-    moduleTitle: ordered[index].moduleTitle,
-    ...learning,
-    completed: learning.completedIds.has(lessonId),
-    previous: available(index - 1, -1),
-    next: available(index + 1, 1),
-  };
 }
 
 export async function recordLessonView(userId: string, lessonId: string): Promise<void> {

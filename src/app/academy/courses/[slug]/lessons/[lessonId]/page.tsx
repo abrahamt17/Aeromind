@@ -36,8 +36,10 @@ async function Lesson({ params }: { params: PageProps<"/academy/courses/[slug]/l
     detail;
   const courseHref = `/academy/courses/${course.slug}`;
   const isTrainee = profile?.role === "trainee";
-  if (isTrainee && content && course.enrolled) await recordLessonView(profile.id, lesson.id);
-  const tutorMessages = isTrainee && content ? await getTutorMessages(profile.id, lesson.id) : [];
+  const [tutorMessages] = await Promise.all([
+    isTrainee && content ? getTutorMessages(profile.id, lesson.id) : [],
+    isTrainee && content && course.enrolled ? recordLessonView(profile.id, lesson.id) : null,
+  ]);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem]">

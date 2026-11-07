@@ -9,18 +9,15 @@
 
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { extname, join } from "node:path";
+import { extname } from "node:path";
 import { chunkText } from "../src/lib/ai/chunking.ts";
 import { createEmbeddings, DEFAULT_EMBEDDING_MODEL } from "../src/lib/ai/openai-api.ts";
 import { extractPdfText } from "../src/lib/ai/pdf.ts";
+import { loadSettings, openDatabase } from "./db.mjs";
 
 const BATCH_SIZE = 50;
 
-try {
-  process.loadEnvFile(".env.local");
-} catch {
-  // Settings can also come from the environment.
-}
+loadSettings();
 
 const apiKey = process.env.OPENAI_API_KEY?.trim();
 if (!apiKey) {
@@ -28,28 +25,6 @@ if (!apiKey) {
   process.exit(1);
 }
 const embeddingModel = process.env.AI_EMBEDDING_MODEL?.trim() || DEFAULT_EMBEDDING_MODEL;
-
-async function openDatabase() {
-  const url = process.env.DATABASE_URL?.trim();
-
-  if (url) {
-    const { default: postgres } = await import("postgres");
-    const sql = postgres(url, { max: 1, prepare: false, ssl: "require", onnotice: () => {} });
-    return {
-      query: (text, params = []) => sql.unsafe(text, params),
-      close: () => sql.end(),
-    };
-  }
-
-  const { PGlite } = await import("@electric-sql/pglite");
-  const { vector } = await import("@electric-sql/pglite-pgvector");
-  // The built-in database allows one process, so stop the app before running this.
-  const pg = new PGlite(join(process.cwd(), ".data", "pglite"), { extensions: { vector } });
-  return {
-    query: async (text, params = []) => (await pg.query(text, params)).rows,
-    close: () => pg.close(),
-  };
-}
 
 function hash(text) {
   return createHash("sha256").update(text).digest("hex");

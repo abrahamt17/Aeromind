@@ -44,6 +44,7 @@ npm test                                 # All unit and database permission test
 npx vitest run path/to/file.test.ts      # A single test file
 npx vitest run -t "test name"            # A single test by name
 npm run db:reset                         # Delete built-in database data only, recreated on next start (stop the app first)
+npm run demo:reset                       # Preview resetting the demo trainee; add -- --yes to do it (stop the app first on the built-in database)
 npm run academy:index                    # Index changed lessons for the AI tutor (needs OPENAI_API_KEY)
 npm run academy:index -- --resource <id> --file <path>   # Index a PDF, text or Markdown resource that allows AI use
 ```
@@ -332,7 +333,7 @@ The product should look credible and commercially viable, not like a generic stu
 - The seed creates one trainee account, one psychologist account and several clearly labelled sample professionals, using synthetic data.
 - The seed includes one completed journey with a pre-generated sample plan, so the demo works without an AI provider or network.
 - The sign-in page has one-click demo accounts. Remove them before real users join.
-- Before presenting, run the full journey on a production build as both roles.
+- Before presenting, run `npm run demo:reset -- --yes`, then the full journey on a production build as both roles, then reset again.
 
 ## Implementation strategy
 
@@ -340,10 +341,13 @@ Prioritize a complete, secure, working user journey over unnecessary features.
 
 ### Completed
 
-Phases 0 to 4, plus local testing of the full journey.
+The original MVP phases, plus AeroMind Academy, the AI tutor and AI development plans, tested on a production build with hosted Supabase as both roles.
 
 ### Remaining before real users
 
 - Decide on hosting, and set `SESSION_SECRET` there.
 - Add PDF report upload and automated browser tests.
+- Test new sign-up on hosted Supabase with a real mailbox.
+- Have qualified professionals review Academy lessons, the scenario, and the tutor distress phrases and replies.
+- Confirm OpenAI data handling and region for real data.
 - Complete a legal and privacy review, then remove demo sign-in.

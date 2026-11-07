@@ -14,8 +14,7 @@ async function Dashboard() {
   const profile = await getTraineeProfile(user.id);
   if (!profile?.onboarding_completed_at) redirect("/trainee/onboarding");
 
-  const requests = await listTraineeRequests(user.id);
-  const development = await getDevelopment(user.id);
+  const [requests, development] = await Promise.all([listTraineeRequests(user.id), getDevelopment(user.id)]);
   const items = development.flatMap((entry) => entry.plan?.items ?? []);
   const completed = items.filter((item) => item.completed_at).length;
   const progress = items.length ? Math.round((completed / items.length) * 100) : 0;

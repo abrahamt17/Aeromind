@@ -31,7 +31,7 @@ function ProgressBar({ label, value }: { label: string; value: number }) {
 
 async function Learning() {
   const user = await requireRole("trainee");
-  const [learning, development] = [await getLearningDashboard(user.id), await getDevelopment(user.id)];
+  const [learning, development] = await Promise.all([getLearningDashboard(user.id), getDevelopment(user.id)]);
   const planItems = development.flatMap((entry) => entry.plan?.items ?? []);
   const openPlanItems = planItems.filter((item) => !item.completed_at);
   const lessonsCompleted = learning.courses.reduce((total, course) => total + course.completed_lessons, 0);

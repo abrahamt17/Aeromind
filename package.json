@@ -10,7 +10,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "db:reset": "node -e \"require('fs').rmSync('.data',{recursive:true,force:true})\"",
-    "academy:index": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/index-knowledge.mjs"
+    "academy:index": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/index-knowledge.mjs",
+    "demo:reset": "node scripts/reset-demo.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
