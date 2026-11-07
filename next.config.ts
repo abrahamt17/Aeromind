@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
-  // The built-in database loads WebAssembly files at runtime, so it is not bundled.
-  serverExternalPackages: ["@electric-sql/pglite"],
+  // Database drivers load native runtime files, so they are not bundled.
+  serverExternalPackages: ["@electric-sql/pglite", "postgres"],
   turbopack: {
     rules: {
       "*.css": {

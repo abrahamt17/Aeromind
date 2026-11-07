@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto";
-import type { PGlite } from "@electric-sql/pglite";
 import { hashPassword } from "@/lib/db/passwords";
 import {
   DEMO_PLAN,
@@ -15,31 +14,48 @@ import {
 } from "@/lib/demo/data";
 import { scenarioContentSchema } from "@/lib/schemas/scenario";
 
-async function createUser(
-  pg: PGlite,
-  email: string,
-  role: "trainee" | "psychologist",
-  displayName: string,
-): Promise<string> {
-  // Demo accounts are entered through the one-click buttons, so passwords are random.
-  const password = randomBytes(32).toString("base64url");
-  const { rows } = await pg.query<{ id: string }>(
-    `insert into auth.users (email, password_hash, raw_user_meta_data)
-     values ($1, $2, $3) returning id`,
-    [email, hashPassword(password), JSON.stringify({ role, display_name: displayName })],
-  );
-  return rows[0].id;
+export type SeedDatabase = {
+  query<T>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
+};
+
+export type DemoUser = {
+  email: string;
+  role: "trainee" | "psychologist";
+  displayName: string;
+};
+
+/** Creates a demo account and returns its id. Hosted projects pass their own version. */
+export type CreateDemoUser = (user: DemoUser) => Promise<string>;
+
+function createLocalUser(db: SeedDatabase): CreateDemoUser {
+  return async ({ email, role, displayName }) => {
+    // Demo accounts are entered through the one-click buttons, so passwords are random.
+    const password = randomBytes(32).toString("base64url");
+    const { rows } = await db.query<{ id: string }>(
+      `insert into auth.users (email, password_hash, raw_user_meta_data)
+       values ($1, $2, $3) returning id`,
+      [email, hashPassword(password), JSON.stringify({ role, display_name: displayName })],
+    );
+    return rows[0].id;
+  };
 }
 
 /**
- * Loads synthetic data. It runs with full access, like a hosted project's secret
- * key, and must only ever run on an empty database.
+ * Loads synthetic data. It runs with full access and must only ever run on an
+ * empty database.
  */
-export async function seedDemoData(pg: PGlite): Promise<void> {
+export async function seedDemoData(
+  pg: SeedDatabase,
+  createUser: CreateDemoUser = createLocalUser(pg),
+): Promise<void> {
   let psychologistId = "";
 
   for (const professional of SAMPLE_PROFESSIONALS) {
-    const id = await createUser(pg, professional.email, "psychologist", professional.displayName);
+    const id = await createUser({
+      email: professional.email,
+      role: "psychologist",
+      displayName: professional.displayName,
+    });
     if (professional.email === DEMO_PSYCHOLOGIST_EMAIL) psychologistId = id;
 
     await pg.query(
@@ -64,7 +80,11 @@ export async function seedDemoData(pg: PGlite): Promise<void> {
     );
   }
 
-  const traineeId = await createUser(pg, DEMO_TRAINEE.email, "trainee", DEMO_TRAINEE.displayName);
+  const traineeId = await createUser({
+    email: DEMO_TRAINEE.email,
+    role: "trainee",
+    displayName: DEMO_TRAINEE.displayName,
+  });
   await pg.query(
     `update public.trainee_profiles
      set training_stage = 'in_flight_training', country = 'Germany', onboarding_completed_at = now()

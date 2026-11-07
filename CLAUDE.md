@@ -31,7 +31,7 @@ The objective is to build a polished, functional MVP suitable for an innovation 
 
 ## Repository status
 
-The MVP journey is built and tested locally for both roles. It runs on a built-in database with no external accounts, so the app is not deployed yet. PDF report upload is not built, and reports are written in the app.
+The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app.
 
 ## Commands
 
@@ -43,7 +43,7 @@ npm run typecheck                        # Generate route types, then tsc --noEm
 npm test                                 # All unit and database permission tests (Vitest)
 npx vitest run path/to/file.test.ts      # A single test file
 npx vitest run -t "test name"            # A single test by name
-npm run db:reset                         # Delete local data, recreated on next start (stop the app first)
+npm run db:reset                         # Delete built-in database data only, recreated on next start (stop the app first)
 ```
 
 Run lint, type-check and relevant tests after each change. There are no automated browser tests yet, so check the full journey in the browser as both roles.
@@ -58,8 +58,9 @@ Use:
 - TypeScript (strict mode)
 - Tailwind CSS
 - shadcn/ui
-- PostgreSQL through PGlite, a built-in database stored in `.data/`
-- Signed cookie sessions with scrypt password hashes
+- Supabase Postgres and Auth when `DATABASE_URL` is set, reached through the Session pooler because the direct address is IPv6-only
+- PGlite, a built-in database stored in `.data/`, when it is not set
+- Signed cookie sessions in both modes
 - OpenAI API (optional)
 - Zod for validation
 - React Hook Form where useful
@@ -69,9 +70,12 @@ Follow the conventions of the installed framework versions rather than assuming 
 
 ## Environment variables
 
-All are optional and server only. Placeholders live in the committed `.env.example`, and real values go in `.env.local`, which must stay out of Git.
+All are optional. Placeholders live in the committed `.env.example`, and real values go in `.env.local`, which must stay out of Git.
 
-- `SESSION_SECRET`: a random one is generated in `.data/` if unset
+- `DATABASE_URL` (server only): switches the app to Supabase. Encode symbols in the password.
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: required with `DATABASE_URL`
+- `SUPABASE_SECRET_KEY` (server only): required with `DATABASE_URL`, used only to create demo users
+- `SESSION_SECRET`: a random one is generated in `.data/` if unset, and hosted deployments must set it
 - `OPENAI_API_KEY` and `OPENAI_MODEL`: without both, plans use the pre-written template
 
 ## User roles
@@ -135,8 +139,9 @@ All are optional and server only. Placeholders live in the committed `.env.examp
 ## Architecture
 
 - All AI provider calls live in `src/lib/ai/`, are server-only, and sit behind `PlanGenerator`, so the provider can change without touching product code. With no key, `template.ts` builds the plan and the interface says no AI was used.
-- All application data access goes through `asUser()` in `src/lib/db/`. It runs queries with the `authenticated` or `anon` database role and the user's id, so RLS always applies. Only `src/lib/auth/accounts.ts` may use `asSystem()`.
-- The database has one connection. Never call `asUser()` inside another `asUser()`, and never hold a transaction open during an AI call.
+- All application data access goes through `asUser()` in `src/lib/db/`. It runs queries with the `authenticated` or `anon` database role and the user's id, so RLS always applies on both databases. Only `src/lib/auth/accounts.ts` may use `systemQuery()`.
+- Never call `asUser()` inside another `asUser()`, and never hold a transaction open during an AI call. The built-in database has one connection, so nesting deadlocks.
+- `src/lib/db/hosted.ts` applies migrations and seeds demo data on first connection if they are missing. Accounts use Supabase Auth in hosted mode, and the app then issues its own signed session cookie.
 - Migrations stay in `supabase/migrations/` and remain Supabase-compatible. `src/lib/db/bootstrap.ts` provides a small stand-in for the `auth` and `storage` schemas, and applies the migrations and demo data on first start.
 - This Next.js version differs from older ones: `src/proxy.ts` replaces middleware, and Cache Components is on. Read `node_modules/next/dist/docs/` before using an unfamiliar API.
 - Reads of the session, params, searchParams or the database must sit behind a `<Suspense>` boundary, or the build fails. Build pages as a static wrapper around an async component. Public pages that read the database call `await connection()` first, so the build never touches it.
@@ -313,7 +318,7 @@ The product should look credible and commercially viable, not like a generic stu
 - The seed creates one trainee account, one psychologist account and several clearly labelled sample professionals, using synthetic data.
 - The seed includes one completed journey with a pre-generated sample plan, so the demo works without an AI provider or network.
 - The sign-in page has one-click demo accounts. Remove them before real users join.
-- Before presenting, run `npm run db:reset`, then run the full journey on a production build as both roles.
+- Before presenting, run the full journey on a production build as both roles.
 
 ## Implementation strategy
 
@@ -325,6 +330,6 @@ Phases 0 to 4, plus local testing of the full journey.
 
 ### Remaining before real users
 
-- Decide on hosting, and add a hosted Postgres connection behind `asUser()` and a production sign-in.
+- Decide on hosting, and set `SESSION_SECRET` there.
 - Add PDF report upload and automated browser tests.
 - Complete a legal and privacy review, then remove demo sign-in.

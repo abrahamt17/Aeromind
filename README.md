@@ -4,7 +4,7 @@ A prototype aviation psychology platform that connects aspiring and student pilo
 
 ## Run it
 
-You need [Node.js](https://nodejs.org). No accounts or external services are required.
+You need [Node.js](https://nodejs.org). With no settings, the app runs on a built-in database. To use Supabase, copy `.env.example` to `.env.local` and fill it in. The tables and demo data are created on first start.
 
 ```bash
 npm install
@@ -30,7 +30,7 @@ On the sign-in page, use **Demo trainee** and **Demo psychologist**.
 4. As the psychologist, begin the review, add and approve a recommendation, then create and release a report.
 5. As the trainee, read the report, create a development plan and work through the scenario.
 
-To return to the original demo data, stop the app and run `npm run db:reset`.
+To return to the original built-in demo data, stop the app and run `npm run db:reset`. This does not affect Supabase.
 
 ## Check it
 

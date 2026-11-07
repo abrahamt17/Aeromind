@@ -1,11 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { PGlite } from "@electric-sql/pglite";
 
 /**
  * The small part of Supabase the migrations depend on. It lets the same
- * migrations and Row Level Security rules run on the built-in database, so the
- * schema stays portable to a hosted Supabase project.
+ * migrations and Row Level Security rules run on the built-in database.
+ * A hosted Supabase project already has all of this.
  */
 const SUPABASE_STAND_IN = `
   create role anon nologin;
@@ -47,11 +46,17 @@ const SUPABASE_STAND_IN = `
   grant select, insert, update, delete on storage.objects to authenticated;
 `;
 
-export async function applySchema(pg: PGlite): Promise<void> {
-  await pg.exec(SUPABASE_STAND_IN);
+type ScriptRunner = { exec(sql: string): Promise<unknown> };
 
+export async function applyMigrations(db: ScriptRunner): Promise<void> {
   const directory = join(process.cwd(), "supabase", "migrations");
   for (const file of readdirSync(directory).sort()) {
-    await pg.exec(readFileSync(join(directory, file), "utf8"));
+    await db.exec(readFileSync(join(directory, file), "utf8"));
   }
+}
+
+/** For the built-in database, which has no Supabase schemas of its own. */
+export async function applySchema(db: ScriptRunner): Promise<void> {
+  await db.exec(SUPABASE_STAND_IN);
+  await applyMigrations(db);
 }
