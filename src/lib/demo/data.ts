@@ -89,7 +89,16 @@ export const WORKLOAD_SCENARIO: {
   summary:
     "An illustrative solo circuit where several tasks arrive at once. Practise deciding what comes first. Always follow your instructor and flight school procedures.",
   content: {
-    version: 1,
+    version: 2,
+    context:
+      "This is a hypothetical educational simulation, not a flight procedure. You are a student pilot on a solo circuit in good weather, with several tasks arriving together.",
+    reflection: "Which habit from this scenario will you discuss with your instructor before your next lesson?",
+    references: [
+      {
+        title: "Pilot's Handbook of Aeronautical Knowledge, Chapter 2: Aeronautical Decision-Making",
+        url: "https://www.faa.gov/regulationspolicies/handbooksmanuals/aviation/phak/chapter-2-aeronautical-decision-making",
+      },
+    ],
     startStepId: "downwind",
     steps: [
       {
@@ -165,6 +174,9 @@ export const WORKLOAD_SCENARIO: {
     ],
   },
 };
+
+/** The Academy lesson this scenario belongs to. */
+export const WORKLOAD_SCENARIO_LESSON = "Workload and busy phases of flight";
 
 export const DEMO_QUESTIONNAIRE_VERSION = "demo-v1";
 export const DEMO_POLICY_VERSION = "prototype-v1";

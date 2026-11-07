@@ -4,6 +4,7 @@ const NAV = [
   { href: "/trainee/dashboard", label: "Dashboard" },
   { href: "/professionals", label: "Find a professional" },
   { href: "/academy", label: "Academy" },
+  { href: "/trainee/learning", label: "My learning" },
   { href: "/trainee/development", label: "Development" },
   { href: "/trainee/profile", label: "Profile" },
 ];

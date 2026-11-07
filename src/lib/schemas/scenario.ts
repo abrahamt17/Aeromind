@@ -19,9 +19,13 @@ const scenarioStepSchema = z.object({
  */
 export const scenarioContentSchema = z
   .object({
-    version: z.literal(1),
+    version: z.union([z.literal(1), z.literal(2)]),
     startStepId: z.string().min(1),
     steps: z.array(scenarioStepSchema).min(1),
+    // Added in version 2. Version 1 scenarios keep working without them.
+    context: z.string().min(1).optional(),
+    reflection: z.string().min(1).optional(),
+    references: z.array(z.object({ title: z.string().min(1), url: z.url() })).optional(),
   })
   .superRefine((content, context) => {
     const stepIds = new Set(content.steps.map((step) => step.id));

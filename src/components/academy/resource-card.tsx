@@ -2,7 +2,7 @@ import { ExternalLink } from "lucide-react";
 import type { Resource } from "@/lib/data/academy";
 import { RESOURCE_ACCESS_LABELS } from "@/lib/labels";
 
-export function ResourceCard({ resource }: { resource: Resource }) {
+export function ResourceCard({ resource, action }: { resource: Resource; action?: React.ReactNode }) {
   return (
     <article className="flex h-full flex-col rounded-xl border bg-card p-5">
       <span className="w-fit rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
@@ -24,6 +24,7 @@ export function ResourceCard({ resource }: { resource: Resource }) {
           <span className="sr-only">(opens in a new tab)</span>
         </a>
       ) : null}
+      {action ? <div className="mt-3">{action}</div> : null}
     </article>
   );
 }

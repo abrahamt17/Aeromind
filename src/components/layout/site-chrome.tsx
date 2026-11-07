@@ -34,7 +34,7 @@ export function SiteHeader() {
           <LinkButton href="/professionals" variant="ghost" className="hidden sm:inline-flex">
             Find a professional
           </LinkButton>
-          <LinkButton href="/academy" variant="ghost">
+          <LinkButton href="/academy" variant="ghost" className="hidden min-[360px]:inline-flex">
             Academy
           </LinkButton>
           <Suspense fallback={<Skeleton className="h-9 w-20" />}>
@@ -51,9 +51,14 @@ export function SiteFooter() {
     <footer className="mt-auto border-t">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <p>AeroMind prototype. All professionals, instructors, courses, questionnaires and reports are samples.</p>
-        <Link href="/privacy" className="underline-offset-4 hover:underline">
-          Privacy notice
-        </Link>
+        <div className="flex gap-4">
+          <Link href="/academy" className="underline-offset-4 hover:underline">
+            Academy
+          </Link>
+          <Link href="/privacy" className="underline-offset-4 hover:underline">
+            Privacy notice
+          </Link>
+        </div>
       </div>
     </footer>
   );

@@ -31,7 +31,7 @@ The objective is to build a polished, functional MVP suitable for an innovation 
 
 ## Repository status
 
-The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app. AeroMind Academy is being built in phases: the catalogue, course pages, resources and simulated enrolment exist. The lesson player, quizzes, AI tutor and live AI plans do not yet.
+The MVP journey is built and tested for both roles on hosted Supabase (Postgres, in eu-north-1) from this computer. It is not deployed. PDF report upload is not built, and reports are written in the app. AeroMind Academy is being built in phases: the catalogue, simulated enrolment, lesson player, quizzes, progress and learning dashboard exist. The AI tutor and live AI plans do not yet.
 
 ## Commands
 
@@ -132,6 +132,7 @@ All are optional. Placeholders live in the committed `.env.example`, and real va
 - `/trainee/assessments/[id]`
 - `/trainee/reports/[id]`
 - `/trainee/development`
+- `/trainee/learning`
 - `/trainee/scenarios/[id]`
 
 ### Psychologist
@@ -156,7 +157,8 @@ All are optional. Placeholders live in the committed `.env.example`, and real va
 - Clients change assessment status, consent, approvals, report release and plans only through the SECURITY DEFINER functions in `supabase/migrations/*_workflow.sql`. Internal helpers live in the `app_private` schema.
 - New tables get no client access by default. Each migration must add explicit grants, including column lists where fields are protected, plus RLS policies.
 - Migrations run once each, tracked in `app_private.schema_migrations` by `applyMigrations()` on both databases at startup. Never edit a migration that has shipped: add a new one.
-- Academy outlines are public. Lesson text stays in `lesson_content`, readable only for preview lessons or enrolled students. Enrolment happens only through `enroll_in_course`. Demo catalogue content lives in `src/lib/demo/academy.ts` and loads through `seedAcademy()`.
+- Academy outlines are public. Lesson text stays in `lesson_content`, readable only for preview lessons or enrolled students. Enrolment happens only through `enroll_in_course`. Demo catalogue content lives in `src/lib/demo/` and loads through `seedAcademy()`. Raise `ACADEMY_CONTENT_VERSION` when it changes, or existing databases will not update.
+- Quiz answers live in `quiz_answer_keys`, which no client can read. Only `submit_quiz` marks answers.
 - `tests/db/` runs the real migrations on an in-memory database, using a separate query role for each user. Add a test here for every new permission rule.
 
 ## Database entities

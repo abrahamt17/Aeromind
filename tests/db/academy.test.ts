@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { seedAcademy } from "../../src/lib/db/seed-academy";
+import { ACADEMY_CONTENT_VERSION, seedAcademy } from "../../src/lib/db/seed-academy";
 import { TestDatabase } from "./harness";
 
 let db: TestDatabase;
@@ -12,6 +12,12 @@ let courseId: string;
 let otherCourseId: string;
 let enrolledResource: string;
 
+function seed() {
+  return db.pg.transaction((tx) =>
+    seedAcademy({ query: async (sql, params) => ({ rows: (await tx.query(sql, params)).rows as never[] }) }),
+  );
+}
+
 async function failure(work: Promise<unknown>): Promise<string> {
   return work.then(
     () => "no error",
@@ -21,9 +27,7 @@ async function failure(work: Promise<unknown>): Promise<string> {
 
 beforeAll(async () => {
   db = await TestDatabase.create();
-  await db.pg.transaction((tx) =>
-    seedAcademy({ query: async (sql, params) => ({ rows: (await tx.query(sql, params)).rows as never[] }) }),
-  );
+  await seed();
 
   trainee = await db.createUser({ role: "trainee", display_name: "Trainee" });
   otherTrainee = await db.createUser({ role: "trainee", display_name: "Other" });
@@ -45,6 +49,7 @@ beforeAll(async () => {
     [courseId],
   );
   previewLesson = preview.id;
+
 
   // A written lesson that is not a preview, which only enrolled students may read.
   const [locked] = await db.admin<{ id: string }>(
@@ -244,5 +249,34 @@ describe("resources", () => {
         db.admin("update public.learning_resources set can_index_ai = true where id = $1", [enrolledResource]),
       ),
     ).toContain("link_only_grants_nothing");
+  });
+});
+
+describe("catalogue updates", () => {
+  it("keeps lesson ids, enrolments and progress when content changes", async () => {
+    const student = await db.createUser({ role: "trainee", display_name: "Keeper" });
+    await db.as(student, "select public.enroll_in_course($1)", [courseId]);
+    await db.as(student, "select public.set_lesson_completion($1, true)", [previewLesson]);
+    const before = await db.admin("select id from public.lessons order by id");
+
+    await db.admin("update app_private.seed_state set version = 0 where name = 'academy'");
+    await seed();
+
+    expect(await db.admin("select id from public.lessons order by id")).toEqual(before);
+    expect(await db.admin("select 1 from public.courses")).toHaveLength(4);
+    expect(await db.admin("select 1 from public.learning_resources")).toHaveLength(4);
+    expect(
+      await db.admin("select 1 from public.lesson_progress where user_id = $1 and completed_at is not null", [student]),
+    ).toHaveLength(1);
+    expect(await db.admin("select version from app_private.seed_state")).toEqual([
+      { version: ACADEMY_CONTENT_VERSION },
+    ]);
+  });
+
+  it("does nothing when the content is already current", async () => {
+    await db.admin("update public.courses set title = 'Edited' where id = $1", [courseId]);
+    await seed();
+    expect(await db.admin("select 1 from public.courses where title = 'Edited'")).toHaveLength(1);
+    await db.admin("update public.courses set title = 'Fatigue and Sleep Management' where id = $1", [courseId]);
   });
 });

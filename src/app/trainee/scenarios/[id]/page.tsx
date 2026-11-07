@@ -25,9 +25,15 @@ async function Scenario({ params, searchParams }: PageProps<"/trainee/scenarios/
     <div className="mx-auto max-w-2xl">
       <SampleLabel className="mb-3">Illustrative scenario</SampleLabel>
       <PageHeader title={scenario.title} description={scenario.summary} />
-      <ScenarioPlayer scenarioId={scenario.id} planItemId={scenario.plan_item_id} content={scenario.content} />
+      <ScenarioPlayer
+        scenarioId={scenario.id}
+        planItemId={scenario.plan_item_id}
+        content={scenario.content}
+        backHref={scenario.plan_item_id ? "/trainee/development" : "/trainee/learning"}
+        backLabel={scenario.plan_item_id ? "Back to your plan" : "Back to My learning"}
+      />
       <p className="mt-4 text-sm text-muted-foreground">
-        This is educational practice, not flight instruction or an assessment. Your choices are not scored.
+        This is an educational simulation, not flight instruction, operational guidance or an assessment. Your choices are not scored.
       </p>
     </div>
   );

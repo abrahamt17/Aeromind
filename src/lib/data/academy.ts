@@ -1,4 +1,5 @@
 import "server-only";
+import type { QuizQuestion } from "@/lib/quiz";
 import { asUser } from "@/lib/db";
 import type { LessonReference } from "@/lib/demo/academy";
 import type { CourseKind, CourseLevel, ResourceAccess, ReviewStatus, VerificationStatus } from "@/lib/labels";
@@ -15,14 +16,15 @@ export type CourseSummary = {
   review_status: ReviewStatus;
   is_sample: boolean;
   featured: boolean;
+  created_at: Date;
   instructor_name: string | null;
   instructor_slug: string | null;
   lesson_count: number;
 };
 
-const COURSE_SUMMARY_SELECT = `
+export const COURSE_SUMMARY_SELECT = `
   select c.id, c.slug, c.kind, c.title, c.summary, c.category, c.level, c.duration_minutes,
-    c.review_status, c.is_sample, c.featured,
+    c.review_status, c.is_sample, c.featured, c.created_at,
     i.display_name as instructor_name, i.slug as instructor_slug,
     (select count(*)::int
      from public.lessons l
@@ -158,6 +160,11 @@ export type LessonDetail = {
   content: { body: string; learning_objectives: string[]; references_list: LessonReference[] } | null;
   previous: LessonOutline | null;
   next: LessonOutline | null;
+  quiz: QuizQuestion[];
+  lastScore: { score: number; total: number } | null;
+  completed: boolean;
+  completedIds: Set<string>;
+  scenario: { id: string; title: string; summary: string } | null;
 };
 
 export async function getLesson(
@@ -174,12 +181,42 @@ export async function getLesson(
   const index = ordered.findIndex(({ lesson }) => lesson.id === lessonId);
   if (index < 0) return null;
 
-  const content = await asUser(userId, (tx) =>
-    tx.one<NonNullable<LessonDetail["content"]>>(
+  const courseLessonIds = ordered.map(({ lesson }) => lesson.id);
+  const learning = await asUser(userId, async (tx) => {
+    const content = await tx.one<NonNullable<LessonDetail["content"]>>(
       "select body, learning_objectives, references_list from public.lesson_content where lesson_id = $1",
       [lessonId],
-    ),
-  );
+    );
+    const quiz = content
+      ? await tx.rows<QuizQuestion>(
+          "select id, prompt, options from public.quiz_questions where lesson_id = $1 order by position",
+          [lessonId],
+        )
+      : [];
+    if (!userId) return { content, quiz, lastScore: null, completedIds: new Set<string>(), scenario: null };
+
+    const lastScore = await tx.one<{ score: number; total: number }>(
+      `select score, total from public.quiz_attempts
+       where lesson_id = $1 and user_id = $2 order by created_at desc limit 1`,
+      [lessonId, userId],
+    );
+    const progress = await tx.rows<{ lesson_id: string }>(
+      `select lesson_id from public.lesson_progress
+       where user_id = $1 and lesson_id = any ($2::uuid[]) and completed_at is not null`,
+      [userId, courseLessonIds],
+    );
+    const scenario = await tx.one<{ id: string; title: string; summary: string }>(
+      "select id, title, summary from public.learning_scenarios where lesson_id = $1 and published",
+      [lessonId],
+    );
+    return {
+      content,
+      quiz,
+      lastScore,
+      completedIds: new Set(progress.map((row) => row.lesson_id)),
+      scenario,
+    };
+  });
 
   const available = (position: number, step: number) => {
     for (let i = position; i >= 0 && i < ordered.length; i += step) {
@@ -192,10 +229,15 @@ export async function getLesson(
     course,
     lesson: ordered[index].lesson,
     moduleTitle: ordered[index].moduleTitle,
-    content,
+    ...learning,
+    completed: learning.completedIds.has(lessonId),
     previous: available(index - 1, -1),
     next: available(index + 1, 1),
   };
+}
+
+export async function recordLessonView(userId: string, lessonId: string): Promise<void> {
+  await asUser(userId, (tx) => tx.rows("select public.record_lesson_view($1)", [lessonId]));
 }
 
 export type InstructorProfile = InstructorSummary & {
@@ -239,7 +281,7 @@ export type Resource = {
   access: ResourceAccess;
 };
 
-const RESOURCE_SELECT = `
+export const RESOURCE_SELECT = `
   select r.id, r.title, r.description, r.kind, r.author, r.source_name, r.source_url,
     r.published_on, r.licence, r.licence_note, r.can_download, r.can_index_ai, r.access
   from public.learning_resources r

@@ -14,10 +14,14 @@ export function ScenarioPlayer({
   scenarioId,
   planItemId,
   content,
+  backHref,
+  backLabel,
 }: {
   scenarioId: string;
   planItemId: string | null;
   content: ScenarioContent;
+  backHref: string;
+  backLabel: string;
 }) {
   const [stepId, setStepId] = useState(content.startStepId);
   const [selected, setSelected] = useState<Choice | null>(null);
@@ -61,8 +65,30 @@ export function ScenarioPlayer({
           Your learning progress has been updated. This records that you completed the activity, not how you would
           perform in flight.
         </p>
+        {content.reflection ? (
+          <div className="mx-auto mt-4 max-w-md rounded-lg bg-muted p-4 text-left">
+            <h3 className="text-sm font-semibold">Reflect</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{content.reflection}</p>
+          </div>
+        ) : null}
+        {content.references?.length ? (
+          <ul className="mx-auto mt-4 max-w-md text-left text-sm">
+            {content.references.map((reference) => (
+              <li key={reference.url}>
+                <a
+                  href={reference.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brand underline-offset-4 hover:underline"
+                >
+                  {reference.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <div className="mt-5">
-          <LinkButton href="/trainee/development">Back to your plan</LinkButton>
+          <LinkButton href={backHref}>{backLabel}</LinkButton>
         </div>
       </section>
     );
@@ -74,6 +100,9 @@ export function ScenarioPlayer({
         <Plane aria-hidden="true" className="size-4" />
         Decision {stepIndex + 1} of {content.steps.length}
       </div>
+      {content.context && stepIndex === 0 ? (
+        <p className="mt-3 rounded-lg bg-muted p-3 text-sm text-muted-foreground">{content.context}</p>
+      ) : null}
       <p className="mt-3 text-lg">{step.situation}</p>
 
       <div className="mt-5 space-y-2.5" role="group" aria-label="Your options">

@@ -94,6 +94,13 @@ async function Catalogue({ searchParams }: { searchParams: PageProps<"/academy">
           <Section title="Expert courses" description="Demonstrations of how qualified professionals could publish here.">
             <CourseGrid courses={courses.filter((course) => course.kind === "expert")} />
           </Section>
+          <Section title="Recently added">
+            <CourseGrid
+              courses={[...courses]
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .slice(0, 3)}
+            />
+          </Section>
           <Section title="Learning resources" description="Original publications from aviation authorities.">
             <ul className="grid gap-4 md:grid-cols-2">
               {resources.slice(0, 2).map((resource) => (
