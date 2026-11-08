@@ -40,7 +40,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 1. Go to [vercel.com](https://vercel.com) and sign up with your GitHub account.
 2. Click **Add New > Project** and import **abrahamt17/Aeromind**.
-3. Leave the framework as **Next.js** and the build settings as they are.
+3. Check that **Framework Preset** says **Next.js**. `vercel.json` also sets this. Leave the build settings and **Output Directory** at their defaults.
 4. Open **Environment Variables** and add every value from step 2.
 5. Click **Deploy**.
 
