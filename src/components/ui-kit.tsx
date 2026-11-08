@@ -4,20 +4,29 @@ import { Button } from "@/components/ui/button";
 import { ASSESSMENT_STATUSES, type AssessmentStatus, formatDate } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
+export function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <p className={cn("text-xs font-semibold tracking-[0.18em] text-brand uppercase", className)}>{children}</p>
+  );
+}
+
 export function PageHeader({
   title,
   description,
   action,
+  eyebrow,
 }: {
   title: string;
   description?: React.ReactNode;
   action?: React.ReactNode;
+  eyebrow?: string;
 }) {
   return (
-    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-3xl font-semibold">{title}</h1>
-        {description ? <p className="mt-2 max-w-2xl text-muted-foreground">{description}</p> : null}
+        {eyebrow ? <Eyebrow className="mb-3">{eyebrow}</Eyebrow> : null}
+        <h1 className="text-3xl font-bold sm:text-4xl">{title}</h1>
+        {description ? <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">{description}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
@@ -36,7 +45,12 @@ export function Panel({
   children?: React.ReactNode;
 }) {
   return (
-    <section className={cn("rounded-xl border bg-card p-5 sm:p-6", className)}>
+    <section
+      className={cn(
+        "rounded-2xl border border-border/80 bg-card p-5 shadow-[0_1px_2px_rgba(15,30,58,0.04),0_8px_24px_-12px_rgba(15,30,58,0.08)] sm:p-7",
+        className,
+      )}
+    >
       {title ? <h2 className="text-lg font-semibold">{title}</h2> : null}
       {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
       {children ? <div className={title || description ? "mt-4" : undefined}>{children}</div> : null}
@@ -54,8 +68,10 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-xl border border-dashed bg-card px-6 py-12 text-center">
-      <Inbox aria-hidden="true" className="size-7 text-muted-foreground" />
+    <div className="flex flex-col items-center rounded-2xl border border-dashed border-input bg-card/70 px-6 py-14 text-center">
+      <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft">
+        <Inbox aria-hidden="true" className="size-6 text-brand" />
+      </span>
       <h2 className="mt-3 font-medium">{title}</h2>
       <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p>
       {action ? <div className="mt-5">{action}</div> : null}
@@ -89,19 +105,22 @@ export function RequestList({
   basePath: string;
 }) {
   return (
-    <ul className="divide-y rounded-xl border bg-card">
+    <ul className="divide-y overflow-hidden rounded-2xl border border-border/80 bg-card shadow-[0_1px_2px_rgba(15,30,58,0.04)]">
       {requests.map((request) => (
         <li key={request.id}>
           <Link
             href={`${basePath}/${request.id}`}
-            className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/60 sm:px-5"
+            className="group flex items-center gap-4 p-4 transition-colors hover:bg-brand-soft/40 sm:px-6"
           >
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{request.counterpart_name}</p>
               <p className="text-sm text-muted-foreground">Requested {formatDate(request.created_at)}</p>
             </div>
             <StatusBadge status={request.status} />
-            <ArrowRight aria-hidden="true" className="hidden size-4 text-muted-foreground sm:block" />
+            <ArrowRight
+              aria-hidden="true"
+              className="hidden size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-brand sm:block"
+            />
           </Link>
         </li>
       ))}

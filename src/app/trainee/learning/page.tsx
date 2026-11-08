@@ -38,7 +38,7 @@ async function Learning() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader eyebrow="Learning"
         title="My learning"
         description="Your courses, quiz results and saved resources. This tracks learning activity, not psychological fitness."
         action={<LinkButton href="/academy">Browse the Academy</LinkButton>}
@@ -50,7 +50,7 @@ async function Learning() {
           { label: "Quizzes taken recently", value: learning.quizzes.length },
           { label: "Active days this week", value: learning.activeDaysThisWeek },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border bg-card p-4">
+          <div key={stat.label} className="rounded-2xl border border-border/80 bg-card p-4">
             <dt className="text-sm text-muted-foreground">{stat.label}</dt>
             <dd className="mt-1 text-2xl font-semibold">{stat.value}</dd>
           </div>
@@ -74,7 +74,7 @@ async function Learning() {
                     ? Math.round((course.completed_lessons / course.available_lessons) * 100)
                     : 0;
                   return (
-                    <li key={course.id} className="rounded-xl border bg-card p-5">
+                    <li key={course.id} className="rounded-2xl border border-border/80 bg-card p-5">
                       <p className="text-sm text-muted-foreground">{course.category}</p>
                       <Link
                         href={`/academy/courses/${course.slug}`}

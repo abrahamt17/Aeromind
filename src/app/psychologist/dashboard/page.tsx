@@ -1,8 +1,10 @@
+import { BellRing, FileCheck2, Inbox } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { StatCard, WelcomeBanner } from "@/components/dashboard";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
-import { EmptyState, LinkButton, PageHeader, Panel, RequestList } from "@/components/ui-kit";
+import { EmptyState, LinkButton, RequestList } from "@/components/ui-kit";
 import { requireRole } from "@/lib/auth/session";
 import { listPsychologistRequests } from "@/lib/data/assessments";
 import { getOwnProfessionalProfile } from "@/lib/data/professionals";
@@ -19,33 +21,46 @@ async function Dashboard() {
   const requests = await listPsychologistRequests(user.id);
   const action = requests.filter((request) => NEEDS_ACTION.includes(request.status));
   const other = requests.filter((request) => !NEEDS_ACTION.includes(request.status));
+  const released = requests.filter((request) => request.status === "report_released").length;
 
   return (
     <>
-      <PageHeader
-        title={`Welcome, ${user.displayName}`}
-        description="Manage assessment requests, reviews and reports."
-        action={<LinkButton href="/psychologist/profile" variant="outline">Edit profile</LinkButton>}
+      <WelcomeBanner
+        eyebrow="Psychologist dashboard"
+        title={`Welcome back, ${user.displayName}`}
+        description="Manage assessment requests, reviews and reports. You decide what can be used for learning."
+        actions={
+          <>
+            <LinkButton href="/psychologist/profile" size="lg" className="rounded-full bg-white px-5 text-navy hover:bg-white/90">
+              Edit your profile
+            </LinkButton>
+            <LinkButton
+              href="/academy"
+              size="lg"
+              variant="outline"
+              className="rounded-full border-white/25 bg-transparent px-5 text-white hover:bg-white/10 hover:text-white"
+            >
+              Open the Academy
+            </LinkButton>
+          </>
+        }
+        aside={
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-8 py-6 text-center">
+            <p className="font-heading text-5xl font-bold text-warm">{action.length}</p>
+            <p className="mt-1 text-sm text-[#b9c6dd]">need your attention</p>
+          </div>
+        }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Panel>
-          <p className="text-3xl font-semibold">{action.length}</p>
-          <p className="text-sm text-muted-foreground">Need your attention</p>
-        </Panel>
-        <Panel>
-          <p className="text-3xl font-semibold">{requests.filter((r) => r.status === "report_released").length}</p>
-          <p className="text-sm text-muted-foreground">Reports released</p>
-        </Panel>
-        <Panel>
-          <p className="text-3xl font-semibold">{requests.length}</p>
-          <p className="text-sm text-muted-foreground">Total requests</p>
-        </Panel>
+      <div className="mb-10 grid gap-4 sm:grid-cols-3">
+        <StatCard icon={BellRing} value={action.length} label="Need your attention" tone="warm" />
+        <StatCard icon={FileCheck2} value={released} label="Reports released" />
+        <StatCard icon={Inbox} value={requests.length} label="Total requests" />
       </div>
 
-      <div className="mt-8 space-y-8">
+      <div className="space-y-10">
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Needs your attention</h2>
+          <h2 className="mb-4 text-xl font-semibold">Needs your attention</h2>
           {action.length === 0 ? (
             <EmptyState title="You are all caught up" description="New requests from trainees will appear here." />
           ) : (
@@ -55,7 +70,7 @@ async function Dashboard() {
 
         {other.length > 0 ? (
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Other requests</h2>
+            <h2 className="mb-4 text-xl font-semibold">Other requests</h2>
             <RequestList requests={other} basePath="/psychologist/assessments" />
           </section>
         ) : null}

@@ -22,20 +22,25 @@ export default function SignInPage() {
         </>
       }
     >
-      <section className="mb-8 rounded-xl border bg-card p-4">
+      <section className="mb-8 rounded-2xl border border-brand/20 bg-brand-soft/60 p-5">
         <SampleLabel>Try the prototype</SampleLabel>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-3 text-sm text-muted-foreground">
           Explore with a synthetic account. No password is needed.
         </p>
-        <form action={signInToDemo} className="mt-3 grid gap-2 sm:grid-cols-2">
-          <Button type="submit" variant="outline" name="role" value="trainee">
+        <form action={signInToDemo} className="mt-4 grid gap-2.5 sm:grid-cols-2">
+          <Button type="submit" size="lg" className="rounded-full" name="role" value="trainee">
             Demo trainee
           </Button>
-          <Button type="submit" variant="outline" name="role" value="psychologist">
+          <Button type="submit" size="lg" variant="outline" className="rounded-full bg-card" name="role" value="psychologist">
             Demo psychologist
           </Button>
         </form>
       </section>
+      <p className="mb-6 flex items-center gap-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        <span className="h-px flex-1 bg-border" />
+        or sign in with email
+        <span className="h-px flex-1 bg-border" />
+      </p>
       <SignInForm />
     </AuthPage>
   );

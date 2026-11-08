@@ -1,11 +1,20 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { Logo } from "@/components/brand/logo";
+import { NavLinks, NavLinksView } from "@/components/layout/nav-links";
 import { SiteFooter } from "@/components/layout/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOut } from "@/lib/auth/actions";
 import { getCurrentProfile } from "@/lib/auth/session";
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 async function AccountMenu() {
   const profile = await getCurrentProfile();
@@ -13,11 +22,17 @@ async function AccountMenu() {
 
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <span className="hidden max-w-48 truncate text-sm text-muted-foreground md:block">
-        {profile.displayName}
-      </span>
+      <div className="hidden min-w-0 items-center gap-2.5 md:flex">
+        <span
+          aria-hidden="true"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft font-heading text-xs font-bold text-brand"
+        >
+          {initials(profile.displayName)}
+        </span>
+        <span className="max-w-44 truncate text-sm font-medium">{profile.displayName}</span>
+      </div>
       <form action={signOut}>
-        <Button type="submit" variant="outline">
+        <Button type="submit" variant="outline" className="rounded-full">
           Sign out
         </Button>
       </form>
@@ -36,26 +51,18 @@ export function AppShell({
 }) {
   return (
     <>
-      <header className="border-b bg-card">
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Logo href={home} />
-          <Suspense fallback={<Skeleton className="h-9 w-24" />}>
+          <Suspense fallback={<Skeleton className="h-9 w-24 rounded-full" />}>
             <AccountMenu />
           </Suspense>
         </div>
-        <nav aria-label="Main" className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-2 pb-2 sm:px-4">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="shrink-0 rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <Suspense fallback={<NavLinksView items={nav} pathname="" />}>
+          <NavLinks items={nav} />
+        </Suspense>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12">{children}</main>
       <SiteFooter />
     </>
   );

@@ -34,7 +34,7 @@ async function Directory({ searchParams }: { searchParams: PageProps<"/professio
 
   return (
     <>
-      <form className="mb-6 grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-[2fr_1fr_1fr_auto]">
+      <form className="mb-6 grid gap-3 rounded-2xl border border-border/80 bg-card p-4 md:grid-cols-[2fr_1fr_1fr_auto]">
         <Input
           name="q"
           defaultValue={filters.query}
@@ -76,7 +76,7 @@ async function Directory({ searchParams }: { searchParams: PageProps<"/professio
               <li key={professional.user_id}>
                 <Link
                   href={`/professionals/${professional.user_id}`}
-                  className="flex h-full flex-col rounded-xl border bg-card p-5 transition-colors hover:border-brand"
+                  className="flex h-full flex-col rounded-2xl border border-border/80 bg-card p-5 transition-colors hover:border-brand"
                 >
                   <div className="flex flex-wrap gap-2">
                     {professional.is_sample ? <SampleLabel>Sample profile</SampleLabel> : null}
@@ -116,7 +116,7 @@ export default function ProfessionalsPage({ searchParams }: PageProps<"/professi
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-        <PageHeader
+        <PageHeader eyebrow="Directory"
           title="Find a professional"
           description="Browse aviation-psychology professionals. Every profile in this prototype is a labelled sample, and demo verification is not a real credential check."
         />

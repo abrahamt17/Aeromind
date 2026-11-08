@@ -58,7 +58,7 @@ export function ScenarioPlayer({
 
   if (finished) {
     return (
-      <section className="rounded-xl border bg-card p-6 text-center">
+      <section className="rounded-2xl border border-border/80 bg-card p-6 text-center">
         <CircleCheck aria-hidden="true" className="mx-auto size-8 text-brand" />
         <h2 className="mt-3 text-xl font-semibold">Scenario complete</h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
@@ -95,7 +95,7 @@ export function ScenarioPlayer({
   }
 
   return (
-    <section className="rounded-xl border bg-card p-5 sm:p-6">
+    <section className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6">
       <div className="flex items-center gap-2 text-sm font-medium text-brand">
         <Plane aria-hidden="true" className="size-4" />
         Decision {stepIndex + 1} of {content.steps.length}

@@ -7,11 +7,17 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-plex-sans);
-  --font-mono: var(--font-plex-mono);
-  --font-heading: var(--font-plex-sans);
+  --font-sans: var(--font-inter);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: var(--font-grotesk);
   --color-brand: var(--brand);
   --color-brand-soft: var(--brand-soft);
+  --color-warm: var(--warm);
+  --color-warm-soft: var(--warm-soft);
+  --color-warm-ink: var(--warm-ink);
+  --color-navy: var(--navy);
+  --color-navy-soft: var(--navy-soft);
+  --color-sky: var(--sky);
   --color-sample: var(--sample);
   --color-sample-soft: var(--sample-soft);
   --color-ring: var(--ring);
@@ -35,47 +41,68 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.4);
 }
 
+/* One palette for the product and the pitch deck: deep navy, a confident blue, one warm accent. */
 :root {
-  --background: oklch(0.985 0.003 247);
-  --foreground: oklch(0.25 0.055 262);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.055 262);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.055 262);
-  --primary: oklch(0.29 0.075 262);
-  --primary-foreground: oklch(0.985 0.003 247);
-  --secondary: oklch(0.955 0.008 250);
-  --secondary-foreground: oklch(0.29 0.075 262);
-  --muted: oklch(0.96 0.006 250);
-  --muted-foreground: oklch(0.47 0.03 258);
-  --accent: oklch(0.945 0.018 250);
-  --accent-foreground: oklch(0.29 0.075 262);
-  --destructive: oklch(0.53 0.2 27);
-  --border: oklch(0.905 0.012 250);
-  --input: oklch(0.88 0.014 250);
-  --ring: oklch(0.55 0.13 255);
-  --brand: oklch(0.5 0.14 255);
-  --brand-soft: oklch(0.95 0.022 250);
-  --sample: oklch(0.45 0.09 70);
-  --sample-soft: oklch(0.96 0.04 85);
-  --radius: 0.625rem;
+  --background: #f6f7f4;
+  --foreground: #0f1e3a;
+  --card: #ffffff;
+  --card-foreground: #0f1e3a;
+  --popover: #ffffff;
+  --popover-foreground: #0f1e3a;
+  --primary: #0f1e3a;
+  --primary-foreground: #f6f7f4;
+  --secondary: #eef1f6;
+  --secondary-foreground: #0f1e3a;
+  --muted: #eef1f6;
+  --muted-foreground: #556178;
+  --accent: #e7eefb;
+  --accent-foreground: #0f1e3a;
+  --destructive: #c0392b;
+  --border: #e1e6ee;
+  --input: #d3dae5;
+  --ring: #2459d6;
+  --brand: #2459d6;
+  --brand-soft: #e7eefb;
+  --warm: #f08a3c;
+  --warm-soft: #fdecdf;
+  --warm-ink: #a8500f;
+  --navy: #0f1e3a;
+  --navy-soft: #1a2d52;
+  --sky: #9fbcff;
+  --sample: #8a5a00;
+  --sample-soft: #fdf3dc;
+  --radius: 0.75rem;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
   }
   h1,
   h2,
   h3 {
-    @apply text-balance tracking-tight;
+    @apply font-heading text-balance;
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: var(--brand-soft);
+    color: var(--foreground);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }

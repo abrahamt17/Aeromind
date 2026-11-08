@@ -42,7 +42,7 @@ export default function ResourcesPage() {
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-        <PageHeader
+        <PageHeader eyebrow="Academy"
           title="Learning resources"
           description="Original publications, linked at their source. Some resources appear only after you sign in or enrol."
         />

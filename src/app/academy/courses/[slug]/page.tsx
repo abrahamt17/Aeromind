@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { EnrollPanel } from "@/components/academy/enroll-panel";
 import { ResourceCard } from "@/components/academy/resource-card";
 import { SampleLabel } from "@/components/brand/sample-label";
+import { WelcomeBanner } from "@/components/dashboard";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { SiteFooter, SiteHeader } from "@/components/layout/site-chrome";
 import { Panel } from "@/components/ui-kit";
@@ -26,22 +27,22 @@ function LessonRow({ slug, lesson, enrolled }: { slug: string; lesson: LessonOut
   const open = lesson.is_available && (lesson.is_preview || enrolled);
   const inner = (
     <>
-      {open ? (
-        <PlayCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand" />
-      ) : (
-        <Lock aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-      )}
-      <span className="min-w-0 flex-1">
-        <span className="block font-medium">{lesson.title}</span>
-        <span className="block text-sm text-muted-foreground">{lesson.summary}</span>
-      </span>
-      <span className="shrink-0 text-right text-sm text-muted-foreground">
-        {lesson.is_available
-          ? lesson.is_preview
-            ? "Free preview"
-            : `${lesson.duration_minutes} min`
-          : "In development"}
-      </span>
+        {open ? (
+          <PlayCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand" />
+        ) : (
+          <Lock aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{lesson.title}</span>
+          <span className="block text-sm text-muted-foreground">{lesson.summary}</span>
+        </span>
+        <span className="shrink-0 text-right text-sm text-muted-foreground">
+          {lesson.is_available
+            ? lesson.is_preview
+              ? "Free preview"
+              : `${lesson.duration_minutes} min`
+            : "In development"}
+        </span>
     </>
   );
 
@@ -66,18 +67,34 @@ async function Course({ params }: { params: PageProps<"/academy/courses/[slug]">
   if (!course) notFound();
 
   return (
+    <>
+    <WelcomeBanner
+      eyebrow={COURSE_KIND_LABELS[course.kind]}
+      title={course.title}
+      description={course.summary}
+      actions={
+        <>
+          {[
+            course.category,
+            COURSE_LEVEL_LABELS[course.level],
+            formatDuration(course.duration_minutes),
+            `${course.lesson_count} lessons`,
+          ].map((fact) => (
+            <span key={fact} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-sm text-[#dce4f2]">
+              {fact}
+            </span>
+          ))}
+          {course.is_sample ? (
+            <span className="inline-flex items-center gap-2 rounded-full bg-warm/15 px-3 py-1 text-sm text-warm">
+              <span className="size-1.5 rounded-full bg-warm" />
+              Demo content
+            </span>
+          ) : null}
+        </>
+      }
+    />
     <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
       <div className="min-w-0 space-y-6">
-        <header>
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-              {COURSE_KIND_LABELS[course.kind]}
-            </span>
-            {course.is_sample ? <SampleLabel>Demo content</SampleLabel> : null}
-          </div>
-          <h1 className="mt-3 text-3xl font-semibold">{course.title}</h1>
-          <p className="mt-2 text-muted-foreground">{course.summary}</p>
-        </header>
 
         <Panel title="About this course">
           <p>{course.description}</p>
@@ -176,6 +193,7 @@ async function Course({ params }: { params: PageProps<"/academy/courses/[slug]">
         </Panel>
       </aside>
     </div>
+    </>
   );
 }
 

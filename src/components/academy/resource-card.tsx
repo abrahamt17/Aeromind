@@ -4,7 +4,7 @@ import { RESOURCE_ACCESS_LABELS } from "@/lib/labels";
 
 export function ResourceCard({ resource, action }: { resource: Resource; action?: React.ReactNode }) {
   return (
-    <article className="flex h-full flex-col rounded-xl border bg-card p-5">
+    <article className="flex h-full flex-col rounded-2xl border border-border/80 bg-card p-5">
       <span className="w-fit rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
         {RESOURCE_ACCESS_LABELS[resource.access]}
       </span>

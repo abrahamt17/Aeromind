@@ -3,12 +3,12 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { CourseGrid } from "@/components/academy/course-card";
 import { ResourceCard } from "@/components/academy/resource-card";
-import { SampleLabel } from "@/components/brand/sample-label";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { SiteFooter, SiteHeader } from "@/components/layout/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { EmptyState, LinkButton, PageHeader } from "@/components/ui-kit";
+import { WelcomeBanner } from "@/components/dashboard";
+import { EmptyState, LinkButton } from "@/components/ui-kit";
 import { listCourses, listResources } from "@/lib/data/academy";
 import { COURSE_LEVEL_LABELS } from "@/lib/labels";
 
@@ -40,7 +40,7 @@ async function Catalogue({ searchParams }: { searchParams: PageProps<"/academy">
 
   return (
     <>
-      <form className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-[2fr_1fr_1fr_auto]">
+      <form className="grid gap-3 rounded-2xl border border-border/80 bg-card p-4 md:grid-cols-[2fr_1fr_1fr_auto]">
         <Input
           name="q"
           defaultValue={filters.query}
@@ -126,10 +126,26 @@ export default function AcademyPage(props: PageProps<"/academy">) {
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-        <SampleLabel className="mb-3">Demo courses, awaiting professional review</SampleLabel>
-        <PageHeader
-          title="AeroMind Academy"
+        <WelcomeBanner
+          eyebrow="AeroMind Academy"
+          title="Learn the human side of flying"
           description="Aviation psychology and human-performance learning for aspiring and student pilots. Educational content only: it does not assess fitness to fly."
+          actions={
+            <>
+              <LinkButton
+                href="/academy/resources"
+                size="lg"
+                variant="outline"
+                className="rounded-full border-white/25 bg-transparent px-5 text-white hover:bg-white/10 hover:text-white"
+              >
+                Learning resources
+              </LinkButton>
+              <p className="inline-flex items-center gap-2 self-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-[#dce4f2]">
+                <span className="size-1.5 rounded-full bg-warm" />
+                Demo courses, awaiting professional review
+              </p>
+            </>
+          }
         />
         <Suspense fallback={<PageSkeleton />}>
           <Catalogue searchParams={props.searchParams} />

@@ -41,7 +41,7 @@ export function LessonQuiz({
   }
 
   return (
-    <section className="rounded-xl border bg-card p-5 sm:p-6">
+    <section className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6">
       <h2 className="text-lg font-semibold">Check your understanding</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         A short knowledge check. It supports your learning and does not measure psychological fitness.

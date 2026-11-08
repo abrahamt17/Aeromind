@@ -74,7 +74,7 @@ function ExistingPlan({ entry }: { entry: DevelopmentEntry }) {
         </p>
       </Panel>
 
-      <ul className="divide-y rounded-xl border bg-card">
+      <ul className="divide-y rounded-2xl border border-border/80 bg-card">
         {plan.items.map((item) => (
           <PlanItemRow key={item.id} item={item} />
         ))}
@@ -108,7 +108,7 @@ async function Development() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader eyebrow="Development"
         title="Your development"
         description="Educational activities based on recommendations your professional approved."
       />
