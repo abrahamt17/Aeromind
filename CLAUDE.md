@@ -78,7 +78,7 @@ All are optional. Placeholders live in the committed `.env.example`, and real va
 - `DATABASE_URL` (server only): switches the app to Supabase. Encode symbols in the password.
 - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: required with `DATABASE_URL`
 - `SUPABASE_SECRET_KEY` (server only): required with `DATABASE_URL`, used only to create demo users
-- `SESSION_SECRET`: a random one is generated in `.data/` if unset, and hosted deployments must set it
+- `SESSION_SECRET`: a random one is generated in `.data/` if unset. Hosted deployments must set at least 32 characters, and the app refuses to start on Vercel without it
 - `OPENAI_API_KEY` and `OPENAI_MODEL`: without both, plans use the pre-written template and the tutor shows as unavailable
 - `AI_PROVIDER`, `AI_CHAT_MODEL`, `AI_EMBEDDING_MODEL`: optional provider settings
 - `TUTOR_DAILY_LIMIT` and `TUTOR_GLOBAL_DAILY_LIMIT`: optional limits on tutor questions per day
@@ -153,6 +153,7 @@ All are optional. Placeholders live in the committed `.env.example`, and real va
 - The tutor retrieves through `search_knowledge`, which runs as the student so RLS decides what the AI can see. It must never read assessment tables. Distress and fitness questions get fixed replies and are not sent to the provider. If the provider flags distress the phrase check missed, the server replaces its answer with `SUPPORT_RESPONSE` and saves nothing. Have a qualified professional review these phrases and replies before real users join. `scripts/index-knowledge.mjs` is an internal command with full database access, and the app must never import it.
 - All application data access goes through `asUser()` in `src/lib/db/`. It runs queries with the `authenticated` or `anon` database role and the user's id, so RLS always applies on both databases. Only `src/lib/auth/accounts.ts` may use `systemQuery()`.
 - Never call `asUser()` inside another `asUser()`, and never hold a transaction open during an AI call. The built-in database has one connection, so nesting deadlocks.
+- Hosting is Vercel, pinned to `arn1` in `vercel.json` beside the Supabase project. `next.config.ts` traces `supabase/migrations/` into the build, because migrations are read at runtime. Pages whose server actions call the AI set `maxDuration`.
 - `src/lib/db/hosted.ts` applies migrations and seeds demo data on first connection if they are missing. Accounts use Supabase Auth in hosted mode, and the app then issues its own signed session cookie.
 - Migrations stay in `supabase/migrations/` and remain Supabase-compatible. `src/lib/db/bootstrap.ts` provides a small stand-in for the `auth` and `storage` schemas, and applies the migrations and demo data on first start.
 - This Next.js version differs from older ones: `src/proxy.ts` replaces middleware, and Cache Components is on. Read `node_modules/next/dist/docs/` before using an unfamiliar API.
@@ -345,7 +346,7 @@ The original MVP phases, plus AeroMind Academy, the AI tutor and AI development 
 
 ### Remaining before real users
 
-- Decide on hosting, and set `SESSION_SECRET` there.
+- Deploy to Vercel in `arn1` (Stockholm) by following `docs/DEPLOYMENT.md`.
 - Add PDF report upload and automated browser tests.
 - Test new sign-up on hosted Supabase with a real mailbox.
 - Have qualified professionals review Academy lessons, the scenario, and the tutor distress phrases and replies.

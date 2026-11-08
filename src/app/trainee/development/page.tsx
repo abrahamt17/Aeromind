@@ -15,6 +15,9 @@ import { COMPETENCIES } from "@/lib/labels";
 
 export const metadata: Metadata = { title: "Development" };
 
+// Plan generation usually takes under 10 seconds, and may retry once.
+export const maxDuration = 60;
+
 function planOrigin(model: string | null): string {
   if (model === TEMPLATE_MODEL) return "Built from pre-written learning content. No AI provider was used.";
   if (model === "pre-generated-sample") return "Pre-generated sample plan.";

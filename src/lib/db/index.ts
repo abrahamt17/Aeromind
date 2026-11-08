@@ -1,8 +1,7 @@
 import "server-only";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { PGlite } from "@electric-sql/pglite";
-import { vector } from "@electric-sql/pglite-pgvector";
+import type { PGlite } from "@electric-sql/pglite";
 import { applyMigrations, applySchema, localRunner } from "@/lib/db/bootstrap";
 import { type HostedDatabase, openHostedDatabase, toParameters } from "@/lib/db/hosted";
 import { seedDemoData } from "@/lib/db/seed";
@@ -18,6 +17,16 @@ export function isHosted(): boolean {
 }
 
 async function openLocalDatabase(): Promise<PGlite> {
+  // Hosting platforms have no writable disk, so the built-in database cannot work there.
+  if (process.env.VERCEL) {
+    throw new Error("DATABASE_URL must be set when AeroMind is hosted. See docs/DEPLOYMENT.md.");
+  }
+
+  // Loaded only when used, so hosted deployments never load the built-in database.
+  const [{ PGlite }, { vector }] = await Promise.all([
+    import("@electric-sql/pglite"),
+    import("@electric-sql/pglite-pgvector"),
+  ]);
   mkdirSync(DATA_DIRECTORY, { recursive: true });
   const pg = new PGlite(DATA_DIRECTORY, { extensions: { vector } });
   await pg.waitReady;

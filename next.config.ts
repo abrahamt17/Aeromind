@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // Database drivers load native runtime files, so they are not bundled.
   serverExternalPackages: ["@electric-sql/pglite", "@electric-sql/pglite-pgvector", "postgres"],
+  // Migrations are read from disk at startup, so hosted builds must include them.
+  outputFileTracingIncludes: {
+    "/*": ["./supabase/migrations/**/*"],
+  },
   turbopack: {
     rules: {
       "*.css": {

@@ -14,7 +14,16 @@ const SESSION_DAYS = 7;
 
 /** Uses SESSION_SECRET when set, otherwise a random secret kept in the data folder. */
 function sessionSecret(): string {
-  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  const configured = process.env.SESSION_SECRET?.trim();
+  if (configured) {
+    if (configured.length < 32) throw new Error("SESSION_SECRET must be at least 32 characters.");
+    return configured;
+  }
+
+  // A secret written to disk would change on every hosted instance and sign everyone out.
+  if (process.env.VERCEL) {
+    throw new Error("SESSION_SECRET must be set when AeroMind is hosted. See docs/DEPLOYMENT.md.");
+  }
 
   const directory = join(process.cwd(), ".data");
   const file = join(directory, "session-secret");

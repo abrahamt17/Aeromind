@@ -23,6 +23,9 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Lesson" };
 
+// AI tutor answers usually take under 10 seconds, but the provider may be slow.
+export const maxDuration = 60;
+
 async function Lesson({ params }: { params: PageProps<"/academy/courses/[slug]/lessons/[lessonId]">["params"] }) {
   await connection();
   const { slug, lessonId } = await params;

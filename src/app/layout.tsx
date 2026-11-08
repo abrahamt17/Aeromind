@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   },
   description:
     "Aviation psychology for aspiring and student pilots: find a professional, request an assessment and continue your development.",
+  // A prototype with demo accounts and sample content, so it stays out of search results.
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
